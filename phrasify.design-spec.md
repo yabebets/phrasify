@@ -173,7 +173,9 @@ Transcript Input
 
 ## 99. Open Source Readiness
 
-Phrasify は将来的に単体 OSS として公開する前提で育てる。ただし、現時点では `/exp` 内の個人 workflow から生まれた tool なので、公開前に個人環境依存・秘密情報・出力データ・説明責任を切り分ける必要がある。
+Phrasify は単体 OSS repo として公開・運用する。初期実装は EXP 内の個人 workflow から生まれたが、現在の canonical source は `https://github.com/yabebets/phrasify` であり、EXP 側は `tools/phrasify` submodule として参照する。
+
+公開 repo には汎用 CLI / tests / examples / skills / docs のみを置き、実データ・API key・個人 workspace の運用情報は含めない。EXP 内での生成物は submodule 内の ignored `outputs/` に置いてよいが、公開 repo の tracked files には入れない。
 
 推奨 positioning:
 
@@ -189,12 +191,14 @@ OSS としては、汎用の英語学習アプリではなく、以下の narrow
 
 ### 99.1 Repository Separation Checklist
 
-- [ ] `tools/phrasify` を standalone repo として切り出す方針を決める
-- [ ] repo 名を決める（候補: `phrasify`, `phrasify-cli`, `phrasify-jp`）
+- [x] `tools/phrasify` を standalone repo として切り出す
+- [x] repo 名を `phrasify` に決める
+- [x] standalone remote `https://github.com/yabebets/phrasify` を作成し、`main` を push する
+- [x] EXP 側の `tools/phrasify` を standalone repo の submodule に置き換える
 - [x] `/exp` 固有の path を README / code / tests から削除する
 - [x] `lab/.env` fallback を削除し、公開 repo では `.env` / environment variables のみにする
-- [ ] `/exp` の `tools/registry.yml` 前提を公開 repo に持ち込まない。必要なら公開 repo 用 metadata に置き換える
-- [ ] `phrasify.design-spec.md` を `docs/design-spec.md` へ移動するか判断する
+- [x] `/exp` の `tools/registry.yml` 前提を公開 repo に持ち込まない
+- [x] `phrasify.design-spec.md` は v0.1.0 では root に残す。公開後に docs が増えたら `docs/design-spec.md` への移動を再判断する
 - [x] `outputs/` の実データを公開 repo に含めない
 - [x] `outputs/.gitkeep` のみ残すか、出力例は `examples/` に匿名化して置く
 
@@ -261,12 +265,20 @@ OSS としては、汎用の英語学習アプリではなく、以下の narrow
 
 ### 99.7 Do Not Open Source Until
 
-- [ ] 実 API key / 個人 Notion ID / 個人 transcript が repo に含まれていない
+- [x] 実 API key / 個人 Notion ID / 個人 transcript が repo に含まれていない
 - [x] 個人の絶対パスへの依存が public code path から消えている
 - [x] README だけで third party user が dry-run / sample extraction まで到達できる
 - [x] tests が fresh clone で通る
 - [x] license が明示されている
 - [x] transcript の外部送信に関する privacy note がある
-- [x] private overlay（`.phrasify.local/` 等）と public tracked files の境界が README / `.gitignore` に明示されている
+- [x] private / generated files は `.gitignore` で tracked files から除外されている
 - [x] `scripts/oss_check.py` で公開前に個人パス・実キー・private Notion ID を検出できる
 - [x] GitHub Actions で `oss_check.py` と unit tests を両方実行する
+
+### 99.8 EXP Submodule Operations Checklist
+
+- [x] EXP 側の canonical code path は `tools/phrasify` submodule とする
+- [x] EXP 側に Phrasify wrapper repo / duplicate implementation を残さない
+- [x] EXP で生成した CSV / JSONL / Notion handoff は `tools/phrasify/outputs/` に置き、Phrasify repo 側の `.gitignore` で管理外にする
+- [x] EXP の LLM API key は tracked file に置かず、local-only `.env.local` または environment variables から読む
+- [x] EXP 側で Phrasify を更新したら、Phrasify repo に commit / push してから EXP repo の submodule pointer を更新する
