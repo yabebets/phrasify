@@ -1,7 +1,7 @@
 # Phrasify
 
-`phrasify` は、英語の長文 transcript から「実務でそのまま使える英語表現カード」を抽出する CLI ツールです。
-主な読者・利用者は日本語ネイティブのビジネスパーソンです。特に VC、startup、finance、MBA interview、founder / operator conversation などの文脈で、単語ではなく「発話で再利用できる表現の塊」を集めることを目的にしています。
+`Phrasify` は、英語の長文 transcript から「実務でそのまま使える英語表現カード」を抽出する CLI ツールです。
+主な読者・利用者は日本語ネイティブのビジネスパーソンです。特に VC、startup、finance、MBA、などのビジネスシーンの文脈で、単語ではなく「発話で再利用できる表現の塊」を集めることを目的にしています。
 
 Phrasify is a Japanese-first CLI that turns English transcripts into reusable business expression cards. It is designed for learners who want to turn podcasts, interviews, and startup/VC content into JSONL or CSV learning assets.
 
