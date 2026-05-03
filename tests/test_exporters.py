@@ -46,6 +46,8 @@ class ExporterTests(unittest.TestCase):
         self.assertIn("at a high level", text)
         self.assertIn("expression_in_source", text)
         self.assertIn("source_confidence_score", text)
+        self.assertIn("native_reusable_score", text)
+        self.assertIn("japanese_speaker_lift_score", text)
 
     def test_build_notion_handoff(self) -> None:
         payload = build_notion_handoff([_card()], source_id="clip")

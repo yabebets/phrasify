@@ -86,6 +86,9 @@ PYTHONPATH=src python -m phrasify aggregate
 | `--output-dir`            | 生成物の保存先。既定は実行ディレクトリの `outputs/` |
 | `--max-expressions`       | 抽出する最大 expression 数                 |
 | `--chunk-max-chars`       | 1 chunk あたりの最大文字数                 |
+| `--min-native-reusable-score` | native reusable score が低いカードを除外 |
+| `--max-too-basic`         | 基礎的すぎるカードを除外する上限             |
+| `--max-too-context-specific` | 文脈依存すぎるカードを除外する上限          |
 | `--format`                | `jsonl` / `json` / `csv`             |
 | `--notion-handoff`        | Notion MCP handoff JSON を生成             |
 | `--notion-database-id`    | handoff payload に database ID を含める    |
@@ -197,6 +200,18 @@ $phrasify の抽出結果を確認して、expression_in_source が false のカ
     "file": "examples/sample_transcript.md",
     "chunk_id": "sample_transcript-001"
   },
+  "scores": {
+    "usefulness": 0.9,
+    "reusability": 0.9,
+    "executive_naturalness": 0.86,
+    "silicon_valley_fit": 0.92,
+    "mba_interview_fit": 0.72,
+    "japanese_speaker_lift": 0.88,
+    "too_basic": 0.12,
+    "too_context_specific": 0.08,
+    "native_reusable_score": 0.78,
+    "source_confidence": 0.95
+  },
   "review_status": "New",
   "expression_in_source": true,
   "original_sentence_in_source": true
@@ -207,8 +222,12 @@ $phrasify の抽出結果を確認して、expression_in_source が false のカ
 
 - `expression_in_source`: `expression` が transcript chunk 内に文字列として存在するか
 - `original_sentence_in_source`: `original_sentence` が transcript chunk 内に存在するか
+- `native_reusable_score`: 他の場面で再利用でき、自然なビジネス英語として使える度合い
+- `japanese_speaker_lift`: 日本語話者が「単語は知っているが、とっさに自然に出せない」発話フレームとして学ぶ価値
+- `too_basic`: B2+ 学習者には基礎的すぎる可能性
+- `too_context_specific`: transcript 固有の事実に閉じすぎている可能性
 
-LLM は学習しやすい形に正規化することがあるため、`expression_in_source` は false になる場合があります。原文 grounding を重視する場合は、この値を review queue の優先度付けに使います。
+LLM は学習しやすい形に正規化することがあるため、`expression_in_source` は false になる場合があります。原文 grounding を重視する場合は、この値を review queue の優先度付けに使います。`native_reusable_score` は `reusability`、`executive_naturalness`、`silicon_valley_fit`、`mba_interview_fit`、`japanese_speaker_lift` から加点し、`too_basic` と `too_context_specific` を減点して Phrasify 側で計算します。
 
 ## Privacy
 

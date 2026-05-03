@@ -77,13 +77,45 @@ class ModelAndDedupTests(unittest.TestCase):
                 "reusable_examples": ["At a high level, we help founders."],
                 "tags": ["transition"],
                 "source": {"file": "clip.md", "chunk_id": "clip-001"},
-                "scores": {"usefulness": 0.9},
+                "scores": {
+                    "usefulness": 0.9,
+                    "native_reusable_score": 0.77,
+                    "japanese_speaker_lift": 0.95,
+                },
                 "extracted_at": "2026-05-03T00:00:00+00:00",
             }
         )
         self.assertEqual(card.expression, "at a high level")
         self.assertEqual(card.source.chunk_id, "clip-001")
         self.assertEqual(card.scores.usefulness, 0.9)
+        self.assertEqual(card.scores.native_reusable_score, 0.77)
+        self.assertEqual(card.scores.japanese_speaker_lift, 0.95)
+
+    def test_native_reusable_score_is_calculated_from_score_components(self) -> None:
+        card = card_from_llm_item(
+            {
+                "expression": "that being said",
+                "original_sentence": "That being said, we still need to validate demand.",
+                "jp_translation": "とはいえ、需要はまだ検証する必要があります。",
+                "nuance": "前段を認めつつ視点を切り替える。",
+                "usage": "議論を前に進めながら留保を入れる。",
+                "reusable_examples": ["That being said, I would still test pricing first."],
+                "tags": ["transition", "hedge"],
+                "scores": {
+                    "reusability": 0.9,
+                    "executive_naturalness": 0.8,
+                    "silicon_valley_fit": 0.7,
+                    "mba_interview_fit": 0.6,
+                    "japanese_speaker_lift": 0.95,
+                    "too_basic": 0.1,
+                    "too_context_specific": 0.2,
+                },
+            },
+            "clip.md",
+            "clip-001",
+            "That being said, we still need to validate demand.",
+        )
+        self.assertEqual(card.scores.native_reusable_score, 0.728)
 
 
 if __name__ == "__main__":

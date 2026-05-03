@@ -33,7 +33,26 @@ class SourceRef:
 @dataclass
 class Scores:
     usefulness: float | None = None
+    reusability: float | None = None
+    executive_naturalness: float | None = None
+    silicon_valley_fit: float | None = None
+    mba_interview_fit: float | None = None
+    japanese_speaker_lift: float | None = None
+    too_basic: float | None = None
+    too_context_specific: float | None = None
+    native_reusable_score: float | None = None
     source_confidence: float | None = None
+
+
+NATIVE_REUSABLE_SCORE_WEIGHTS = {
+    "reusability": 0.25,
+    "executive_naturalness": 0.20,
+    "silicon_valley_fit": 0.15,
+    "mba_interview_fit": 0.10,
+    "japanese_speaker_lift": 0.25,
+    "too_basic": -0.20,
+    "too_context_specific": -0.20,
+}
 
 
 @dataclass
@@ -130,10 +149,7 @@ def card_from_llm_item(
         timestamp=_as_str(source_payload.get("timestamp")) or None,
     )
     score_payload = item.get("scores") if isinstance(item.get("scores"), dict) else {}
-    scores = Scores(
-        usefulness=_coerce_score(score_payload.get("usefulness")),
-        source_confidence=_coerce_score(score_payload.get("source_confidence")),
-    )
+    scores = scores_from_payload(score_payload)
     text_lower = transcript_text.lower()
     expression_in_source = bool(expression and expression.lower() in text_lower)
     original_sentence_in_source = bool(original_sentence and original_sentence in transcript_text)
@@ -176,10 +192,7 @@ def card_from_record(record: dict[str, Any]) -> ExpressionCard:
         ),
         pattern=_as_str(record.get("pattern")) or None,
         category=_as_str(record.get("category")) or None,
-        scores=Scores(
-            usefulness=_coerce_score(score_payload.get("usefulness")),
-            source_confidence=_coerce_score(score_payload.get("source_confidence")),
-        ),
+        scores=scores_from_payload(score_payload),
         extracted_at=_as_str(record.get("extracted_at"))
         or datetime.now(timezone.utc).isoformat(timespec="seconds"),
         review_status=_as_str(record.get("review_status")) or "New",
@@ -196,6 +209,38 @@ def _coerce_score(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return max(0.0, min(1.0, score))
+
+
+def scores_from_payload(payload: dict[str, Any]) -> Scores:
+    scores = Scores(
+        usefulness=_coerce_score(payload.get("usefulness")),
+        reusability=_coerce_score(payload.get("reusability")),
+        executive_naturalness=_coerce_score(payload.get("executive_naturalness")),
+        silicon_valley_fit=_coerce_score(payload.get("silicon_valley_fit")),
+        mba_interview_fit=_coerce_score(payload.get("mba_interview_fit")),
+        japanese_speaker_lift=_coerce_score(payload.get("japanese_speaker_lift")),
+        too_basic=_coerce_score(payload.get("too_basic")),
+        too_context_specific=_coerce_score(payload.get("too_context_specific")),
+        native_reusable_score=_coerce_score(payload.get("native_reusable_score")),
+        source_confidence=_coerce_score(payload.get("source_confidence")),
+    )
+    if scores.native_reusable_score is None:
+        scores.native_reusable_score = calculate_native_reusable_score(scores)
+    return scores
+
+
+def calculate_native_reusable_score(scores: Scores) -> float | None:
+    values = {
+        field_name: getattr(scores, field_name)
+        for field_name in NATIVE_REUSABLE_SCORE_WEIGHTS
+    }
+    if all(value is None for value in values.values()):
+        return None
+    raw = sum(
+        (values[field_name] or 0.0) * weight
+        for field_name, weight in NATIVE_REUSABLE_SCORE_WEIGHTS.items()
+    )
+    return round(max(0.0, min(1.0, raw)), 3)
 
 
 def validate_card(card: ExpressionCard) -> list[str]:

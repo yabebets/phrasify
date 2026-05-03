@@ -67,6 +67,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum characters per transcript chunk",
     )
     extract.add_argument(
+        "--min-native-reusable-score",
+        type=float,
+        default=None,
+        help="Discard cards below this native reusable score",
+    )
+    extract.add_argument(
+        "--max-too-basic",
+        type=float,
+        default=None,
+        help="Discard cards above this too_basic score",
+    )
+    extract.add_argument(
+        "--max-too-context-specific",
+        type=float,
+        default=None,
+        help="Discard cards above this too_context_specific score",
+    )
+    extract.add_argument(
         "--discard-invalid",
         action="store_true",
         help="Discard cards missing required DesignSpec fields",
@@ -154,6 +172,36 @@ def load_cards_from_jsonl(path: Path) -> list[ExpressionCard]:
             except json.JSONDecodeError as exc:
                 raise ValueError(f"invalid JSONL at {path}:{line_no}: {exc.msg}") from exc
     return cards
+
+
+def filter_cards_by_scores(
+    cards: list[ExpressionCard],
+    min_native_reusable_score: float | None = None,
+    max_too_basic: float | None = None,
+    max_too_context_specific: float | None = None,
+) -> list[ExpressionCard]:
+    filtered: list[ExpressionCard] = []
+    for card in cards:
+        scores = card.scores
+        if (
+            min_native_reusable_score is not None
+            and (scores.native_reusable_score is None or scores.native_reusable_score < min_native_reusable_score)
+        ):
+            continue
+        if (
+            max_too_basic is not None
+            and scores.too_basic is not None
+            and scores.too_basic > max_too_basic
+        ):
+            continue
+        if (
+            max_too_context_specific is not None
+            and scores.too_context_specific is not None
+            and scores.too_context_specific > max_too_context_specific
+        ):
+            continue
+        filtered.append(card)
+    return filtered
 
 
 def export_command(args: argparse.Namespace) -> int:
@@ -258,6 +306,16 @@ def extract_command(args: argparse.Namespace) -> int:
                     continue
             cards.append(card)
         remaining = max(0, args.max_expressions - len(cards))
+
+    before_filters = len(cards)
+    cards = filter_cards_by_scores(
+        cards,
+        min_native_reusable_score=args.min_native_reusable_score,
+        max_too_basic=args.max_too_basic,
+        max_too_context_specific=args.max_too_context_specific,
+    )
+    if len(cards) != before_filters:
+        print(f"[filter] kept={len(cards)}/{before_filters} after score filters")
 
     cards = dedup_cards(cards)[: args.max_expressions]
     for seq, card in enumerate(cards, start=1):
