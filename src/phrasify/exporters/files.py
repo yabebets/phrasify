@@ -51,7 +51,7 @@ def write_csv(cards: list[ExpressionCard], path: Path) -> None:
         "review_status",
         "extracted_at",
     ]
-    with path.open("w", encoding="utf-8", newline="") as f:
+    with path.open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         for card in cards:

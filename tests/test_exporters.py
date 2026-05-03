@@ -41,6 +41,7 @@ class ExporterTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             path = Path(td) / "out.csv"
             write_csv([_card()], path)
+            self.assertTrue(path.read_bytes().startswith(b"\xef\xbb\xbf"))
             text = path.read_text(encoding="utf-8")
         self.assertIn("expression", text)
         self.assertIn("at a high level", text)
