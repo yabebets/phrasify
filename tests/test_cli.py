@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from phrasify.cli import main
+from phrasify.cli import build_parser, main
 
 
 class CliTests(unittest.TestCase):
@@ -57,6 +57,19 @@ class CliTests(unittest.TestCase):
                 code = main(["extract", str(transcript), "--dry-run"])
         self.assertEqual(code, 1)
         self.assertIn("empty transcript", err.getvalue())
+
+    def test_extract_default_output_dir_is_current_working_directory(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            cwd = Path.cwd()
+            try:
+                import os
+
+                os.chdir(td)
+                parser = build_parser()
+                args = parser.parse_args(["extract", "demo.txt", "--dry-run"])
+                self.assertEqual(args.output_dir.resolve(), (Path(td) / "outputs").resolve())
+            finally:
+                os.chdir(cwd)
 
 
 if __name__ == "__main__":

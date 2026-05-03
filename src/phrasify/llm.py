@@ -9,7 +9,12 @@ from pathlib import Path
 
 PROVIDER_DEFAULT_MODEL = {
     "openai": "gpt-4o",
-    "anthropic": "claude-opus-4-7",
+    "anthropic": "claude-3-5-sonnet-latest",
+}
+
+PROVIDER_MODEL_ENV = {
+    "openai": "PHRASIFY_OPENAI_MODEL",
+    "anthropic": "PHRASIFY_ANTHROPIC_MODEL",
 }
 
 
@@ -75,6 +80,18 @@ def require_provider_env(provider: str) -> None:
         raise RuntimeError("ANTHROPIC_API_KEY is not set")
 
 
+def get_default_model(provider: str) -> str:
+    env_name = PROVIDER_MODEL_ENV.get(provider)
+    if env_name:
+        value = os.getenv(env_name)
+        if value:
+            return value
+    try:
+        return PROVIDER_DEFAULT_MODEL[provider]
+    except KeyError as exc:
+        raise ValueError(f"unknown provider: {provider}") from exc
+
+
 def call_llm(
     provider: str,
     model: str,
@@ -98,10 +115,20 @@ def call_llm(
 def _parse_items(content: str) -> list[dict]:
     payload = extract_json_object(content)
     data = json.loads(payload)
+    if not isinstance(data, dict):
+        raise ValueError(f"LLM returned non-object JSON: {type(data).__name__}")
     items = data.get("expressions", [])
     if not isinstance(items, list):
-        raise ValueError(f"LLM returned non-list expressions: {type(items)}")
-    return [item for item in items if isinstance(item, dict)]
+        raise ValueError(f"LLM returned non-list expressions: {type(items).__name__}")
+    bad_indexes = [
+        str(index) for index, item in enumerate(items) if not isinstance(item, dict)
+    ]
+    if bad_indexes:
+        raise ValueError(
+            "LLM returned malformed expression item(s) at index: "
+            + ", ".join(bad_indexes)
+        )
+    return items
 
 
 def _call_openai(
@@ -181,4 +208,3 @@ def _call_anthropic(
             file=sys.stderr,
         )
     return _parse_items(content)
-

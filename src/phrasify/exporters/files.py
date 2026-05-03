@@ -36,6 +36,10 @@ def write_csv(cards: list[ExpressionCard], path: Path) -> None:
         "source_timestamp",
         "pattern",
         "category",
+        "usefulness_score",
+        "source_confidence_score",
+        "expression_in_source",
+        "original_sentence_in_source",
         "review_status",
         "extracted_at",
     ]
@@ -58,8 +62,11 @@ def write_csv(cards: list[ExpressionCard], path: Path) -> None:
                     "source_timestamp": card.source.timestamp,
                     "pattern": card.pattern,
                     "category": card.category,
+                    "usefulness_score": card.scores.usefulness,
+                    "source_confidence_score": card.scores.source_confidence,
+                    "expression_in_source": card.expression_in_source,
+                    "original_sentence_in_source": card.original_sentence_in_source,
                     "review_status": card.review_status,
                     "extracted_at": card.extracted_at,
                 }
             )
-

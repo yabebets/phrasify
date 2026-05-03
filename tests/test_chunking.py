@@ -20,6 +20,12 @@ class ChunkingTests(unittest.TestCase):
         self.assertTrue(chunks[0].text.startswith("A"))
         self.assertTrue(chunks[1].text.startswith("B"))
 
+    def test_chunk_text_splits_single_long_paragraph(self) -> None:
+        text = "A" * 700 + ". " + "B" * 700 + "."
+        chunks = chunk_text(text, source_stem="demo", max_chars=1000)
+        self.assertEqual([c.chunk_id for c in chunks], ["demo-001", "demo-002"])
+        self.assertLessEqual(max(len(c.text) for c in chunks), 1000)
+
 
 if __name__ == "__main__":
     unittest.main()

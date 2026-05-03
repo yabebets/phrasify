@@ -11,13 +11,9 @@ from .chunking import chunk_text
 from .dedup import dedup_cards
 from .env import load_env_files
 from .exporters import write_csv, write_json, write_jsonl, write_notion_handoff
-from .llm import PROVIDER_DEFAULT_MODEL, call_llm, load_prompt, require_provider_env
+from .llm import call_llm, get_default_model, load_prompt, require_provider_env
 from .models import ExpressionCard, card_from_llm_item, card_from_record, validate_card
-from .pathing import resolve_unique_path, sanitize_stem
-
-
-HERE = Path(__file__).resolve().parent
-TOOL_ROOT = HERE.parents[1]
+from .pathing import default_aggregate_path, default_output_dir, resolve_unique_path, sanitize_stem
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -49,8 +45,8 @@ def build_parser() -> argparse.ArgumentParser:
     extract.add_argument(
         "--output-dir",
         type=Path,
-        default=TOOL_ROOT / "outputs",
-        help="Directory for generated files",
+        default=default_output_dir(),
+        help="Directory for generated files (default: ./outputs)",
     )
     extract.add_argument(
         "--format",
@@ -101,13 +97,13 @@ def build_parser() -> argparse.ArgumentParser:
     aggregate.add_argument(
         "--input-dir",
         type=Path,
-        default=TOOL_ROOT / "outputs",
+        default=default_output_dir(),
         help="Directory containing phrasify JSONL outputs",
     )
     aggregate.add_argument(
         "--out",
         type=Path,
-        default=TOOL_ROOT / "outputs" / "aggregated.jsonl",
+        default=default_aggregate_path(),
         help="Aggregated JSONL output path",
     )
     aggregate.add_argument(
@@ -149,9 +145,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 def load_cards_from_jsonl(path: Path) -> list[ExpressionCard]:
     cards: list[ExpressionCard] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        if line.strip():
-            cards.append(card_from_record(json.loads(line)))
+    with path.open("r", encoding="utf-8") as f:
+        for line_no, line in enumerate(f, start=1):
+            if not line.strip():
+                continue
+            try:
+                cards.append(card_from_record(json.loads(line)))
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"invalid JSONL at {path}:{line_no}: {exc.msg}") from exc
     return cards
 
 
@@ -194,7 +195,7 @@ def aggregate_command(args: argparse.Namespace) -> int:
 def extract_command(args: argparse.Namespace) -> int:
     from .loaders import load_transcript
 
-    load_env_files(TOOL_ROOT)
+    load_env_files(Path.cwd())
     document = load_transcript(args.input)
     if not document.text.strip():
         raise ValueError("empty transcript")
@@ -216,7 +217,7 @@ def extract_command(args: argparse.Namespace) -> int:
             )
         return 0
 
-    model = args.model or PROVIDER_DEFAULT_MODEL[args.provider]
+    model = args.model or get_default_model(args.provider)
     require_provider_env(args.provider)
     prompt = load_prompt(args.prompt)
 

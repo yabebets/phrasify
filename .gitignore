@@ -5,6 +5,7 @@ __pycache__/
 .env
 .env.local
 *.local.*
+phrasify.design-spec.md
 .phrasify.local/
 .exp/
 *.egg-info/

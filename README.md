@@ -5,8 +5,6 @@
 
 Phrasify is a Japanese-first CLI that turns English transcripts into reusable business expression cards. It is designed for learners who want to turn podcasts, interviews, and startup/VC content into JSONL or CSV learning assets.
 
-DesignSpec は [`phrasify.design-spec.md`](phrasify.design-spec.md) です。旧 lab prototype の必要な機能は `src/phrasify/` 配下の正式モジュールに取り込み済みです。
-
 30 秒で試す
 
 ```bash
@@ -37,6 +35,8 @@ python3 -m venv .venv
 ```bash
 cp .env.example .env
 ```
+
+既定モデルは provider ごとに設定されています。明示したい場合は `--model` を使うか、`PHRASIFY_ANTHROPIC_MODEL` / `PHRASIFY_OPENAI_MODEL` を `.env` に置いてください。
 
 ## 使い方
 
@@ -80,6 +80,7 @@ PYTHONPATH=src python -m phrasify aggregate
 | --------------------------- | ------------------------------------------ |
 | `--provider`              | `anthropic` / `openai` を選択          |
 | `--model`                 | provider の model 名を明示                 |
+| `--output-dir`            | 生成物の保存先。既定は実行ディレクトリの `outputs/` |
 | `--max-expressions`       | 抽出する最大 expression 数                 |
 | `--chunk-max-chars`       | 1 chunk あたりの最大文字数                 |
 | `--format`                | `jsonl` / `json` / `csv`             |

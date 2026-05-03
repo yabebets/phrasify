@@ -4,6 +4,14 @@ import re
 from pathlib import Path
 
 
+def default_output_dir() -> Path:
+    return Path.cwd() / "outputs"
+
+
+def default_aggregate_path() -> Path:
+    return default_output_dir() / "aggregated.jsonl"
+
+
 def sanitize_stem(value: str) -> str:
     s = re.sub(r"[^A-Za-z0-9._-]+", "_", value)
     return s.strip("_")[:90] or "transcript"
@@ -20,4 +28,3 @@ def resolve_unique_path(base: Path) -> Path:
         if not candidate.exists():
             return candidate
         i += 1
-
