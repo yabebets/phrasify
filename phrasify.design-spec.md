@@ -1,9 +1,8 @@
-# English Expression Extractors PRD
+# Design Spec - Phrasify
 
 ## 1. Product Summary
 
-English Expression Extractors は、YouTube / podcast / news / interview などの英語 transcript を、ユーザー専用の「使える英語表現データベース」に変換する学習ツールである。
-
+Phrasify は、YouTube / podcast / news / interview などの英語 transcript を、ユーザー専用の「使える英語表現データベース」に変換する学習ツールである。
 ジェネラルな単語帳ではなく、特にビジネスシーン、さらに言えばスタートアップ経営やベンチャーキャピタル業界などの文脈でそのまま再利用できる英語表現の塊を抽出し、日本語訳・ニュアンス・型・自分用例文・タグまで含むカードとして保存するツールである。
 
 初期実装は CLI を前提とし、現在は standalone OSS repo として運用する。
@@ -14,7 +13,6 @@ English Expression Extractors は、YouTube / podcast / news / interview など�
 最近ではYoutubeやPodcastなどで、実際にシリコンバレーで活躍するビジネスパーソンのリアルな英語コンテンツから知的刺刺激を得ることは実務上重要になりつつある。そのため、よくある学習教材の長文コンテンツを読んだり聞いたりするのではなく、実際のユースケースに近い学習資産として、特に VC / startup / business 文脈で実務で自然に使える表現・言い回し・発話フレームを蓄積することが重要である。
 
 現状の課題:
-
 - transcript は素材として残るが、復習可能な表現カードになっていない
 - 単語抽出に寄ると、実務で口から出せる表現になりにくい
 - 上級者向けの仕事に最適化された学習教材がない
@@ -24,7 +22,6 @@ English Expression Extractors は、YouTube / podcast / news / interview など�
 ## 3. Target User
 
 Primary user:
-
 - 日本語ネイティブで、英語を VC / startup / finance / MBA / interview / business discussion で使いたいユーザー
 - CEFR B2 以上を想定し、基礎単語ではなく、自然な英語運用力を上げたい
 - 長文 podcast / YouTube / news / interview transcript を継続的に学習素材化したい
