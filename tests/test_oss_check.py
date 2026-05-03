@@ -17,12 +17,12 @@ class OssCheckTests(unittest.TestCase):
 
             self.assertEqual(scan_file(path), [])
 
-    def test_oss_check_flags_exp_private_path(self) -> None:
+    def test_oss_check_flags_private_path(self) -> None:
         from scripts.oss_check import scan_file
 
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "README.md"
-            path.write_text("Use /Users/toshiakiyabe/exp/Knowledge/Clips/private.md\n")
+            path.write_text("Use /Users/alice/private/transcripts/customer-call.md\n")
 
             findings = scan_file(path)
 
@@ -36,7 +36,7 @@ class OssCheckTests(unittest.TestCase):
             root = Path(tmp)
             private_dir = root / ".phrasify.local"
             private_dir.mkdir()
-            (private_dir / "notes.md").write_text("/Users/toshiakiyabe/exp\n")
+            (private_dir / "notes.md").write_text("/Users/alice/private/transcripts/customer-call.md\n")
             public = root / "README.md"
             public.write_text("public docs\n")
 

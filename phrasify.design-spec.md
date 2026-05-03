@@ -6,7 +6,7 @@ English Expression Extractors は、YouTube / podcast / news / interview など�
 
 ジェネラルな単語帳ではなく、特にビジネスシーン、さらに言えばスタートアップ経営やベンチャーキャピタル業界などの文脈でそのまま再利用できる英語表現の塊を抽出し、日本語訳・ニュアンス・型・自分用例文・タグまで含むカードとして保存するツールである。
 
-初期実装は CLI を前提とし、旧 `lab/english-expressions-extractor` の学びを取り込み、現在は standalone OSS repo として運用する。EXP では `apps/phrasify` submodule として参照する。
+初期実装は CLI を前提とし、現在は standalone OSS repo として運用する。
 
 ## 2. Problem
 
@@ -25,7 +25,6 @@ English Expression Extractors は、YouTube / podcast / news / interview など�
 
 Primary user:
 
-- 私自身
 - 日本語ネイティブで、英語を VC / startup / finance / MBA / interview / business discussion で使いたいユーザー
 - CEFR B2 以上を想定し、基礎単語ではなく、自然な英語運用力を上げたい
 - 長文 podcast / YouTube / news / interview transcript を継続的に学習素材化したい
@@ -65,7 +64,7 @@ MVP では以下を扱わない:
 - 完全な学習 UI
 - SRS アルゴリズムの実装
 - 翻訳品質の人手レビュー workflow
-- 全 Vault / 全 Clips の自動巡回
+- 外部ナレッジベース全体の自動巡回
 
 ## 6. Input
 
@@ -87,7 +86,7 @@ Expected source types:
 MVP assumption:
 
 - 基本入力は `md` ファイル
-- 既存 Knowledge clip と相性がよい形式を優先する
+- Markdown note と相性がよい形式を優先する
 
 ## 7. Output Schema
 
@@ -173,9 +172,9 @@ Transcript Input
 
 ## 99. Open Source Readiness
 
-Phrasify は単体 OSS repo として公開・運用する。初期実装は EXP 内の個人 workflow から生まれたが、現在の canonical source は `https://github.com/yabebets/phrasify` であり、EXP 側は `apps/phrasify` submodule として参照する。
+Phrasify は単体 OSS repo として公開・運用する。公開 repo では、ユーザーが任意の transcript をローカルCLIで処理し、JSONL / CSV / Notion handoff へ変換できる状態を canonical とする。
 
-公開 repo には汎用 CLI / tests / examples / skills / docs のみを置き、実データ・API key・個人 workspace の運用情報は含めない。EXP 内での生成物は submodule 内の ignored `outputs/` に置いてよいが、公開 repo の tracked files には入れない。
+公開 repo には汎用 CLI / tests / examples / skills / docs のみを置き、実データ・API key・個人環境の運用情報は含めない。生成物は ignored `outputs/` に置けるが、公開 repo の tracked files には入れない。
 
 推奨 positioning:
 
@@ -191,13 +190,12 @@ OSS としては、汎用の英語学習アプリではなく、以下の narrow
 
 ### 99.1 Repository Separation Checklist
 
-- [x] `tools/phrasify` から standalone repo として切り出す
+- [x] standalone repo として切り出す
 - [x] repo 名を `phrasify` に決める
-- [x] standalone remote `https://github.com/yabebets/phrasify` を作成し、`main` を push する
-- [x] EXP 側の `apps/phrasify` を standalone repo の submodule にする
-- [x] `/exp` 固有の path を README / code / tests から削除する
-- [x] `lab/.env` fallback を削除し、公開 repo では `.env` / environment variables のみにする
-- [x] `/exp` の `tools/registry.yml` 前提を公開 repo に持ち込まない
+- [x] standalone remote を作成し、`main` を push する
+- [x] 親プロジェクト固有の path を README / code / tests から削除する
+- [x] 親プロジェクトの `.env` fallback を削除し、公開 repo では `.env` / environment variables のみにする
+- [x] 親プロジェクト固有の registry / metadata 前提を公開 repo に持ち込まない
 - [x] `phrasify.design-spec.md` は v0.1.0 では root に残す。公開後に docs が増えたら `docs/design-spec.md` への移動を再判断する
 - [x] `outputs/` の実データを公開 repo に含めない
 - [x] `outputs/.gitkeep` のみ残すか、出力例は `examples/` に匿名化して置く
@@ -272,13 +270,5 @@ OSS としては、汎用の英語学習アプリではなく、以下の narrow
 - [x] license が明示されている
 - [x] transcript の外部送信に関する privacy note がある
 - [x] private / generated files は `.gitignore` で tracked files から除外されている
-- [x] `scripts/oss_check.py` で公開前に個人パス・実キー・private Notion ID を検出できる
+- [x] `scripts/oss_check.py` で公開前に個人パス・実キー・既知の private Notion ID を検出できる
 - [x] GitHub Actions で `oss_check.py` と unit tests を両方実行する
-
-### 99.8 EXP Submodule Operations Checklist
-
-- [x] EXP 側の canonical code path は `apps/phrasify` submodule とする
-- [x] EXP 側に Phrasify wrapper repo / duplicate implementation を残さない
-- [x] EXP で生成した CSV / JSONL / Notion handoff は `apps/phrasify/outputs/` に置き、Phrasify repo 側の `.gitignore` で管理外にする
-- [x] EXP の LLM API key は tracked file に置かず、local-only `.env.local` または environment variables から読む
-- [x] EXP 側で Phrasify を更新したら、Phrasify repo に commit / push してから EXP repo の submodule pointer を更新する

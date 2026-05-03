@@ -115,7 +115,7 @@ $phrasify を使って、この transcript から英語表現カードを抽出�
 出力は JSONL と CSV の両方でお願いします。
 ```
 
-Codex が repo 内で作業している場合は、`apps/phrasify`、旧レイアウトの `tools/phrasify`、または standalone repo root を見つけ、まず `phrasify extract ... --dry-run` で loader / chunking を確認してから、本抽出に進む想定です。
+Codex が repo 内で作業している場合は、Phrasify の repository root、または既に `phrasify` が入っている environment を見つけ、まず `phrasify extract ... --dry-run` で loader / chunking を確認してから、本抽出に進む想定です。
 
 ### Claude Code ユーザー向け
 

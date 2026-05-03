@@ -9,13 +9,13 @@ Phrasify is a CLI for turning English transcripts into reusable expression cards
 
 ## Locate the CLI
 
-Prefer the local repository copy when present:
+Prefer the current repository root when it contains `pyproject.toml` and `src/phrasify/`. Otherwise, look for a nearby Phrasify checkout before asking the user where it is.
 
 ```bash
-cd apps/phrasify
+cd /path/to/phrasify
 ```
 
-If the project still uses the older EXP layout, `tools/phrasify` may also exist. If the current project is the standalone Phrasify repo, use the repository root. If none of those exist, check whether `phrasify` is already on `PATH` before asking the user where the repo is.
+If no local checkout is present, check whether `phrasify` is already on `PATH`.
 
 ## First-time setup
 

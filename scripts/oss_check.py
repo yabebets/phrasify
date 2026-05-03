@@ -37,11 +37,14 @@ class SecretPattern:
 PATTERNS = [
     SecretPattern(
         "personal absolute path",
-        re.compile(r"/Users/toshiakiyabe\b|/Users/[^/\s]+/exp\b"),
+        re.compile(
+            r"/Users/[^/\s]+/(?:private|secret|internal|confidential|workspace|work|projects?)/",
+            re.IGNORECASE,
+        ),
     ),
     SecretPattern(
-        "EXP knowledge vault path",
-        re.compile(r"\bKnowledge/Clips\b|\bKnowledge/英語"),
+        "private notes path",
+        re.compile(r"\b(?:Private|Internal)/(?:Clips|Notes|Transcripts)\b", re.IGNORECASE),
     ),
     SecretPattern(
         "literal API key assignment",
@@ -64,7 +67,7 @@ PATTERNS = [
         re.compile(r"\bntn_[A-Za-z0-9_-]{20,}\b"),
     ),
     SecretPattern(
-        "legacy private Notion id",
+        "known private Notion id",
         re.compile(r"\b(?:745f3755|d55ebdaa)[a-f0-9-]*\b", re.IGNORECASE),
     ),
 ]
@@ -133,7 +136,7 @@ def scan_paths(paths: list[Path]) -> list[Finding]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Check that Phrasify public files do not contain EXP-local secrets or paths."
+        description="Check that Phrasify public files do not contain local secrets or private paths."
     )
     parser.add_argument(
         "--root",
