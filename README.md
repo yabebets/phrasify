@@ -89,6 +89,7 @@ PYTHONPATH=src python -m phrasify aggregate
 | `--min-native-reusable-score` | native reusable score が低いカードを除外 |
 | `--max-too-basic`         | 基礎的すぎるカードを除外する上限             |
 | `--max-too-context-specific` | 文脈依存すぎるカードを除外する上限          |
+| `--no-nlp-hints`          | NLP 候補ヒントを LLM に渡さない              |
 | `--format`                | `jsonl` / `json` / `csv`             |
 | `--notion-handoff`        | Notion MCP handoff JSON を生成             |
 | `--notion-database-id`    | handoff payload に database ID を含める    |
@@ -265,3 +266,14 @@ PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
 LLM API を叩かない処理は stdlib `unittest` で検証します。provider SDK は必要なものだけ optional dependency として入れます。
+
+### Optional NLP
+
+spaCy を入れると、noun chunks / verb phrases / discourse markers を候補ヒントとして LLM に渡し、lemma-based source grounding や `too_basic` / `too_context_specific` の補助判定にも使います。
+
+```bash
+.venv/bin/pip install -e '.[nlp]'
+python -m spacy download en_core_web_sm
+```
+
+spaCy や model が入っていない場合も、Phrasify は regex fallback で基本的な発話フレーム候補を抽出します。

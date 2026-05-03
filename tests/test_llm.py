@@ -6,7 +6,12 @@ import unittest
 from importlib.util import find_spec
 from unittest import mock
 
-from phrasify.llm import _parse_items, extract_json_object, get_default_model
+from phrasify.llm import (
+    _parse_items,
+    build_user_message,
+    extract_json_object,
+    get_default_model,
+)
 
 
 class LlmParsingTests(unittest.TestCase):
@@ -25,6 +30,17 @@ class LlmParsingTests(unittest.TestCase):
     def test_get_default_model_accepts_provider_env_override(self) -> None:
         with mock.patch.dict(os.environ, {"PHRASIFY_ANTHROPIC_MODEL": "claude-test"}, clear=False):
             self.assertEqual(get_default_model("anthropic"), "claude-test")
+
+    def test_build_user_message_includes_candidate_hints(self) -> None:
+        message = build_user_message(
+            "That being said, we should test demand.",
+            transcript_title="Demo",
+            chunk_id="demo-001",
+            max_expressions=5,
+            candidate_hints="- That being said [discourse_marker]",
+        )
+        self.assertIn("BEGIN NLP CANDIDATE HINTS", message)
+        self.assertIn("That being said [discourse_marker]", message)
 
     @unittest.skipUnless(find_spec("anthropic"), "anthropic extra is not installed")
     def test_anthropic_extra_is_importable(self) -> None:

@@ -13,6 +13,7 @@ from .env import load_env_files
 from .exporters import write_csv, write_json, write_jsonl, write_notion_handoff
 from .llm import call_llm, get_default_model, load_prompt, require_provider_env
 from .models import ExpressionCard, card_from_llm_item, card_from_record, validate_card
+from .nlp import build_candidate_hint_block
 from .pathing import default_aggregate_path, default_output_dir, resolve_unique_path, sanitize_stem
 
 
@@ -83,6 +84,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=None,
         help="Discard cards above this too_context_specific score",
+    )
+    extract.add_argument(
+        "--no-nlp-hints",
+        action="store_true",
+        help="Do not pass NLP candidate hints to the LLM",
     )
     extract.add_argument(
         "--discard-invalid",
@@ -278,6 +284,7 @@ def extract_command(args: argparse.Namespace) -> int:
             f"[extract] chunk={chunk.chunk_id} chars={len(chunk.text)} "
             f"provider={args.provider} model={model}"
         )
+        candidate_hints = None if args.no_nlp_hints else build_candidate_hint_block(chunk.text)
         items = call_llm(
             provider=args.provider,
             model=model,
@@ -286,6 +293,7 @@ def extract_command(args: argparse.Namespace) -> int:
             transcript_title=document.title,
             chunk_id=chunk.chunk_id,
             max_expressions=remaining,
+            candidate_hints=candidate_hints,
         )
         for item in items:
             card = card_from_llm_item(

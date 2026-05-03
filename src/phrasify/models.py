@@ -5,6 +5,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .nlp import apply_nlp_score_adjustments, expression_in_source_by_lemma
+
 
 @dataclass(frozen=True)
 class TranscriptDocument:
@@ -150,8 +152,20 @@ def card_from_llm_item(
     )
     score_payload = item.get("scores") if isinstance(item.get("scores"), dict) else {}
     scores = scores_from_payload(score_payload)
+    has_explicit_native_score = scores.native_reusable_score is not None
+    if (
+        apply_nlp_score_adjustments(scores, expression, original_sentence)
+        and not has_explicit_native_score
+    ):
+        scores.native_reusable_score = calculate_native_reusable_score(scores)
     text_lower = transcript_text.lower()
-    expression_in_source = bool(expression and expression.lower() in text_lower)
+    expression_in_source = bool(
+        expression
+        and (
+            expression.lower() in text_lower
+            or expression_in_source_by_lemma(expression, transcript_text)
+        )
+    )
     original_sentence_in_source = bool(original_sentence and original_sentence in transcript_text)
 
     return ExpressionCard(

@@ -9,7 +9,7 @@ from pathlib import Path
 
 PROVIDER_DEFAULT_MODEL = {
     "openai": "gpt-4o",
-    "anthropic": "claude-3-5-sonnet-latest",
+    "anthropic": "claude-sonnet-4-20250514",
 }
 
 PROVIDER_MODEL_ENV = {
@@ -64,13 +64,21 @@ def build_user_message(
     transcript_title: str,
     chunk_id: str,
     max_expressions: int,
+    candidate_hints: str | None = None,
 ) -> str:
-    return (
+    message = (
         f"Transcript title: {transcript_title}\n"
         f"chunk_id: {chunk_id}\n"
         f"max_expressions = {max_expressions}\n\n"
-        f"--- BEGIN TRANSCRIPT CHUNK ---\n{transcript}\n--- END TRANSCRIPT CHUNK ---"
     )
+    if candidate_hints:
+        message += (
+            "--- BEGIN NLP CANDIDATE HINTS ---\n"
+            f"{candidate_hints}\n"
+            "--- END NLP CANDIDATE HINTS ---\n\n"
+        )
+    message += f"--- BEGIN TRANSCRIPT CHUNK ---\n{transcript}\n--- END TRANSCRIPT CHUNK ---"
+    return message
 
 
 def require_provider_env(provider: str) -> None:
@@ -100,14 +108,27 @@ def call_llm(
     transcript_title: str,
     chunk_id: str,
     max_expressions: int,
+    candidate_hints: str | None = None,
 ) -> list[dict]:
     if provider == "openai":
         return _call_openai(
-            model, system_prompt, transcript, transcript_title, chunk_id, max_expressions
+            model,
+            system_prompt,
+            transcript,
+            transcript_title,
+            chunk_id,
+            max_expressions,
+            candidate_hints,
         )
     if provider == "anthropic":
         return _call_anthropic(
-            model, system_prompt, transcript, transcript_title, chunk_id, max_expressions
+            model,
+            system_prompt,
+            transcript,
+            transcript_title,
+            chunk_id,
+            max_expressions,
+            candidate_hints,
         )
     raise ValueError(f"unknown provider: {provider}")
 
@@ -138,6 +159,7 @@ def _call_openai(
     transcript_title: str,
     chunk_id: str,
     max_expressions: int,
+    candidate_hints: str | None = None,
 ) -> list[dict]:
     from openai import OpenAI
 
@@ -150,7 +172,7 @@ def _call_openai(
             {
                 "role": "user",
                 "content": build_user_message(
-                    transcript, transcript_title, chunk_id, max_expressions
+                    transcript, transcript_title, chunk_id, max_expressions, candidate_hints
                 ),
             },
         ],
@@ -175,6 +197,7 @@ def _call_anthropic(
     transcript_title: str,
     chunk_id: str,
     max_expressions: int,
+    candidate_hints: str | None = None,
 ) -> list[dict]:
     from anthropic import Anthropic
 
@@ -193,7 +216,7 @@ def _call_anthropic(
             {
                 "role": "user",
                 "content": build_user_message(
-                    transcript, transcript_title, chunk_id, max_expressions
+                    transcript, transcript_title, chunk_id, max_expressions, candidate_hints
                 ),
             }
         ],

@@ -117,6 +117,55 @@ class ModelAndDedupTests(unittest.TestCase):
         )
         self.assertEqual(card.scores.native_reusable_score, 0.728)
 
+    def test_card_uses_lemma_grounding_for_inflected_source_expression(self) -> None:
+        card = card_from_llm_item(
+            {
+                "expression": "double down on",
+                "original_sentence": "We doubled down on founder-led sales.",
+                "jp_translation": "創業者主導の営業にさらに注力しました。",
+                "nuance": "確信を持って注力する。",
+                "usage": "戦略や投資判断で使う。",
+                "reusable_examples": ["We should double down on retention."],
+                "tags": ["strategy"],
+            },
+            "clip.md",
+            "clip-001",
+            "We doubled down on founder-led sales.",
+        )
+        self.assertIs(card.expression_in_source, True)
+
+    def test_card_gets_nlp_score_adjustments_for_frames_and_basic_phrases(self) -> None:
+        frame = card_from_llm_item(
+            {
+                "expression": "that being said",
+                "original_sentence": "That being said, we should test pricing.",
+                "jp_translation": "とはいえ、価格を検証すべきです。",
+                "nuance": "視点を切り替える。",
+                "usage": "留保を入れながら議論を進める。",
+                "reusable_examples": ["That being said, I would validate demand first."],
+                "tags": ["transition"],
+            },
+            "clip.md",
+            "clip-001",
+            "That being said, we should test pricing.",
+        )
+        basic = card_from_llm_item(
+            {
+                "expression": "very good",
+                "original_sentence": "It is very good.",
+                "jp_translation": "とても良いです。",
+                "nuance": "基本的な評価。",
+                "usage": "一般的な形容。",
+                "reusable_examples": ["It is very good."],
+                "tags": ["basic"],
+            },
+            "clip.md",
+            "clip-002",
+            "It is very good.",
+        )
+        self.assertGreaterEqual(frame.scores.japanese_speaker_lift or 0, 0.82)
+        self.assertGreaterEqual(basic.scores.too_basic or 0, 0.85)
+
 
 if __name__ == "__main__":
     unittest.main()
