@@ -81,6 +81,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Also write a Notion MCP handoff JSON file",
     )
     extract.add_argument(
+        "--notion-database-id",
+        default=None,
+        help="Optional Notion database ID to include in the handoff payload",
+    )
+    extract.add_argument(
+        "--notion-data-source-id",
+        default=None,
+        help="Optional Notion data source ID to include in the handoff payload",
+    )
+    extract.add_argument(
         "--dry-run",
         action="store_true",
         help="Load, clean, and chunk the transcript without calling an LLM",
@@ -122,6 +132,16 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Also write a Notion MCP handoff JSON file",
     )
+    export.add_argument(
+        "--notion-database-id",
+        default=None,
+        help="Optional Notion database ID to include in the handoff payload",
+    )
+    export.add_argument(
+        "--notion-data-source-id",
+        default=None,
+        help="Optional Notion data source ID to include in the handoff payload",
+    )
     export.set_defaults(func=export_command)
 
     return parser
@@ -148,7 +168,14 @@ def export_command(args: argparse.Namespace) -> int:
     if args.notion_handoff:
         source_id = args.input.stem
         handoff_path = out_path.with_name(f"notion-batch-{source_id}.json")
-        write_notion_handoff(cards, handoff_path, source_id=source_id, jsonl_path=args.input)
+        write_notion_handoff(
+            cards,
+            handoff_path,
+            source_id=source_id,
+            jsonl_path=args.input,
+            database_id=args.notion_database_id,
+            data_source_id=args.notion_data_source_id,
+        )
         print(f"[notion] {handoff_path}")
     return 0
 
@@ -169,6 +196,8 @@ def extract_command(args: argparse.Namespace) -> int:
 
     load_env_files(TOOL_ROOT)
     document = load_transcript(args.input)
+    if not document.text.strip():
+        raise ValueError("empty transcript")
     chunks = chunk_text(
         document.text,
         source_stem=sanitize_stem(document.path.stem),
@@ -263,6 +292,8 @@ def extract_command(args: argparse.Namespace) -> int:
             handoff_path,
             source_id=sanitize_stem(document.path.stem),
             jsonl_path=out_path if args.format == "jsonl" else None,
+            database_id=args.notion_database_id,
+            data_source_id=args.notion_data_source_id,
         )
         print(f"[notion] {handoff_path}")
     return 0

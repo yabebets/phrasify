@@ -1,22 +1,26 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
 from ..models import ExpressionCard
 
 
-DEFAULT_NOTION_DB_ID = "745f3755-c507-4f63-837e-0c9b17374409"
-DEFAULT_NOTION_DATA_SOURCE_ID = "d55ebdaa-dfbb-4dd8-b142-433b828ed902"
+def notion_target_from_env() -> tuple[str | None, str | None]:
+    return (
+        os.getenv("PHRASIFY_NOTION_DATABASE_ID") or None,
+        os.getenv("PHRASIFY_NOTION_DATA_SOURCE_ID") or None,
+    )
 
 
 def build_notion_handoff(
     cards: list[ExpressionCard],
     source_id: str,
     jsonl_path: Path | None = None,
-    database_id: str = DEFAULT_NOTION_DB_ID,
-    data_source_id: str = DEFAULT_NOTION_DATA_SOURCE_ID,
+    database_id: str | None = None,
+    data_source_id: str | None = None,
 ) -> dict:
     pages = []
     for card in cards:
@@ -44,12 +48,17 @@ def build_notion_handoff(
                 }
             }
         )
+    if database_id is None and data_source_id is None:
+        database_id, data_source_id = notion_target_from_env()
+
     return {
         "schema_version": 2,
         "target": {
             "database_id": database_id,
             "data_source_id": data_source_id,
-            "data_source_url": f"collection://{data_source_id}",
+            "data_source_url": f"collection://{data_source_id}"
+            if data_source_id
+            else None,
         },
         "source": {
             "source_id": source_id,
@@ -72,8 +81,15 @@ def write_notion_handoff(
     path: Path,
     source_id: str,
     jsonl_path: Path | None = None,
+    database_id: str | None = None,
+    data_source_id: str | None = None,
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = build_notion_handoff(cards, source_id=source_id, jsonl_path=jsonl_path)
+    payload = build_notion_handoff(
+        cards,
+        source_id=source_id,
+        jsonl_path=jsonl_path,
+        database_id=database_id,
+        data_source_id=data_source_id,
+    )
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-

@@ -2,8 +2,22 @@
 name = "phrasify"
 version = "0.1.0"
 description = "Extract reusable business English expression cards from transcripts."
+readme = "README.md"
 requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Phrasify contributors" }]
 dependencies = []
+keywords = ["english-learning", "transcripts", "llm", "japanese", "cli"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Education",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Education",
+  "Topic :: Text Processing",
+]
 
 [project.optional-dependencies]
 openai = ["openai"]

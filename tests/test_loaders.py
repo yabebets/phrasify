@@ -39,6 +39,13 @@ class LoaderTests(unittest.TestCase):
         self.assertIn("Let's double down.", doc.text)
         self.assertIn("At a high level", doc.text)
 
+    def test_load_transcript_rejects_unsupported_extension(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "sample.pdf"
+            path.write_text("body", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "unsupported transcript type"):
+                load_transcript(path)
+
 
 if __name__ == "__main__":
     unittest.main()

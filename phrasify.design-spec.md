@@ -170,3 +170,100 @@ Transcript Input
   -> Card Generation
   -> JSONL / CSV / Notion handoff Export
 ```
+
+## 99. Open Source Readiness
+
+Phrasify は将来的に単体 OSS として公開する前提で育てる。ただし、現時点では `/exp` 内の個人 workflow から生まれた tool なので、公開前に個人環境依存・秘密情報・出力データ・説明責任を切り分ける必要がある。
+
+推奨 positioning:
+
+> Phrasify is a Japanese-first CLI that turns English transcripts into reusable business expression cards.
+
+OSS としては、汎用の英語学習アプリではなく、以下の narrow wedge で出す。
+
+- 日本語ネイティブ向け
+- transcript-to-expression-card CLI
+- business / startup / VC English に強い
+- JSONL / CSV / Notion / Anki などへつなげやすい local-first tool
+- LLM provider はユーザーが自分の API key で選ぶ
+
+### 99.1 Repository Separation Checklist
+
+- [ ] `tools/phrasify` を standalone repo として切り出す方針を決める
+- [ ] repo 名を決める（候補: `phrasify`, `phrasify-cli`, `phrasify-jp`）
+- [x] `/exp` 固有の path を README / code / tests から削除する
+- [x] `lab/.env` fallback を削除し、公開 repo では `.env` / environment variables のみにする
+- [ ] `/exp` の `tools/registry.yml` 前提を公開 repo に持ち込まない。必要なら公開 repo 用 metadata に置き換える
+- [ ] `phrasify.design-spec.md` を `docs/design-spec.md` へ移動するか判断する
+- [x] `outputs/` の実データを公開 repo に含めない
+- [x] `outputs/.gitkeep` のみ残すか、出力例は `examples/` に匿名化して置く
+
+### 99.2 Privacy / Data Handling Checklist
+
+- [x] transcript が LLM provider API に送信されることを README に明記する
+- [x] どのデータがローカル保存されるかを README に明記する
+- [x] API key は environment variable でのみ読む設計にする
+- [x] `.env.example` を追加し、実キーを含む `.env` は `.gitignore` に入れる
+- [x] sample transcript / sample output は個人情報・著作権上の懸念がない素材に差し替える
+- [x] Notion handoff payload に個人の DB ID や data source ID を直書きしない
+- [x] Notion / Anki export では外部書き込みが明示 opt-in であることを保証する
+
+### 99.3 Product / Documentation Checklist
+
+- [x] 日本語 README を first-class にする
+- [x] 英語 README を追加するか、README の下部に short English section を置く
+- [x] 30 秒で価値が分かる usage example を README 冒頭に置く
+- [x] 入力形式（`.md`, `.txt`, `.srt`, `.vtt`）を明記する
+- [x] 出力 schema の例を README に載せる
+- [x] `extract`, `export`, `aggregate` のコマンド例を整える
+- [x] `--provider`, `--model`, `--max-expressions`, `--notion-handoff` の説明を足す
+- [x] quality metrics（`expression_in_source`, `original_sentence_in_source`）の意味を説明する
+- [x] FAQ を追加する（例: "Anki に入れられる?", "transcript はどこに送られる?", "日本語以外でも使える?"）
+
+### 99.4 Packaging / Distribution Checklist
+
+- [x] `pyproject.toml` の metadata を OSS 向けに整える
+- [x] license を決める（候補: MIT or Apache-2.0）
+- [x] `LICENSE` を追加する
+- [x] `CHANGELOG.md` を追加する
+- [x] `CONTRIBUTING.md` を追加するか、README に最小限の contribution guide を置く
+- [x] `CODE_OF_CONDUCT.md` が必要か判断する（v0.1.0 では未追加。外部 contributor を積極募集する段階で再判断）
+- [x] `pip install -e .` で動くことを確認する
+- [x] `phrasify` console script が動くことを確認する
+- [x] GitHub Actions で unit tests を回す
+- [x] Python version support を明記する（現状は `>=3.11`）
+- [x] Claude Code / Codex 向けに `skills/phrasify/SKILL.md` を同梱する
+- [x] README に skill install 手順を追加する
+- [x] `MANIFEST.in` で skill / examples / prompt を sdist に含める
+
+### 99.5 Code Quality Checklist
+
+- [x] `src/phrasify` layout を維持する
+- [x] core logic は LLM provider 非依存に保つ
+- [x] LLM adapter は OpenAI / Anthropic で分離し、provider 追加を容易にする
+- [x] prompt は `src/phrasify/prompts/` に置き、将来的に user override 可能にする
+- [x] file loader / cleaning / chunking / schema / export の unit tests を維持する
+- [x] LLM API を叩かない fixture-based test を追加する
+- [x] malformed JSON / empty transcript / unsupported extension の error path をテストする
+- [ ] CSV export の multiline field が spreadsheet で崩れないか確認する
+- [x] aggregate の dedup rule を README に明記し、test coverage を維持する
+
+### 99.6 Roadmap Before Public Announcement
+
+- [ ] `v0.1.0` として CLI extraction を安定化する
+- [x] CSV export を README の primary flow に入れる
+- [ ] `--format anki-csv` を追加するか、Anki import 用 CSV recipe を README に書く
+- [x] Notion handoff から個人 DB 依存を外す
+- [x] example transcript + expected output を追加する
+- [x] 最小 GitHub Actions workflow を追加する
+- [x] issue template を追加する
+- [ ] 最初の 3 つの "good first issue" を切る
+
+### 99.7 Do Not Open Source Until
+
+- [ ] 実 API key / 個人 Notion ID / 個人 transcript が repo に含まれていない
+- [x] `/Users/toshiakiyabe/exp` への依存が public code path から消えている
+- [x] README だけで third party user が dry-run / sample extraction まで到達できる
+- [x] tests が fresh clone で通る
+- [x] license が明示されている
+- [x] transcript の外部送信に関する privacy note がある

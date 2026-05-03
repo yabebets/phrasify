@@ -48,6 +48,16 @@ class CliTests(unittest.TestCase):
             self.assertTrue(out.exists())
             self.assertIn("at a high level", out.read_text(encoding="utf-8"))
 
+    def test_cli_dry_run_rejects_empty_transcript(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            transcript = Path(td) / "empty.txt"
+            transcript.write_text("   \n", encoding="utf-8")
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                code = main(["extract", str(transcript), "--dry-run"])
+        self.assertEqual(code, 1)
+        self.assertIn("empty transcript", err.getvalue())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,8 @@
+include README.md
+include LICENSE
+include CHANGELOG.md
+include CONTRIBUTING.md
+include .env.example
+recursive-include examples *
+recursive-include skills *
+recursive-include src/phrasify/prompts *.md

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Phrasify"
+  short_description: "Extract reusable English expression cards"
+  default_prompt: "Use $phrasify to extract reusable English expression cards from this transcript."
+
+policy:
+  allow_implicit_invocation: true

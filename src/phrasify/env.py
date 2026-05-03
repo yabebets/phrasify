@@ -9,10 +9,6 @@ def load_env_files(start: Path) -> None:
     candidates = [
         start / ".env",
         start / ".env.local",
-        start.parent / ".env",
-        start.parent / ".env.local",
-        start.parent.parent / ".env.local",
-        start.parent.parent / "lab" / ".env",
     ]
     for path in candidates:
         if path.exists():
