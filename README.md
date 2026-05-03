@@ -5,6 +5,8 @@
 
 Phrasify is a Japanese-first CLI that turns English transcripts into reusable business expression cards. It is designed for learners who want to turn podcasts, interviews, and startup/VC content into JSONL or CSV learning assets.
 
+<img src="assets/phrasify.png" alt="Phrasify turns long-form transcripts into practical phrase cards" width="920">
+
 30 秒で試す
 
 ```bash
