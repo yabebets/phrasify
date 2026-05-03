@@ -6,7 +6,7 @@ English Expression Extractors は、YouTube / podcast / news / interview など�
 
 ジェネラルな単語帳ではなく、特にビジネスシーン、さらに言えばスタートアップ経営やベンチャーキャピタル業界などの文脈でそのまま再利用できる英語表現の塊を抽出し、日本語訳・ニュアンス・型・自分用例文・タグまで含むカードとして保存するツールである。
 
-初期実装は CLI を前提とし、旧 `lab/english-expressions-extractor` の学びを取り込み、`tools/phrasify` 配下で継続利用できる tool として運用する。
+初期実装は CLI を前提とし、旧 `lab/english-expressions-extractor` の学びを取り込み、現在は standalone OSS repo として運用する。EXP では `apps/phrasify` submodule として参照する。
 
 ## 2. Problem
 
@@ -173,7 +173,7 @@ Transcript Input
 
 ## 99. Open Source Readiness
 
-Phrasify は単体 OSS repo として公開・運用する。初期実装は EXP 内の個人 workflow から生まれたが、現在の canonical source は `https://github.com/yabebets/phrasify` であり、EXP 側は `tools/phrasify` submodule として参照する。
+Phrasify は単体 OSS repo として公開・運用する。初期実装は EXP 内の個人 workflow から生まれたが、現在の canonical source は `https://github.com/yabebets/phrasify` であり、EXP 側は `apps/phrasify` submodule として参照する。
 
 公開 repo には汎用 CLI / tests / examples / skills / docs のみを置き、実データ・API key・個人 workspace の運用情報は含めない。EXP 内での生成物は submodule 内の ignored `outputs/` に置いてよいが、公開 repo の tracked files には入れない。
 
@@ -191,10 +191,10 @@ OSS としては、汎用の英語学習アプリではなく、以下の narrow
 
 ### 99.1 Repository Separation Checklist
 
-- [x] `tools/phrasify` を standalone repo として切り出す
+- [x] `tools/phrasify` から standalone repo として切り出す
 - [x] repo 名を `phrasify` に決める
 - [x] standalone remote `https://github.com/yabebets/phrasify` を作成し、`main` を push する
-- [x] EXP 側の `tools/phrasify` を standalone repo の submodule に置き換える
+- [x] EXP 側の `apps/phrasify` を standalone repo の submodule にする
 - [x] `/exp` 固有の path を README / code / tests から削除する
 - [x] `lab/.env` fallback を削除し、公開 repo では `.env` / environment variables のみにする
 - [x] `/exp` の `tools/registry.yml` 前提を公開 repo に持ち込まない
@@ -277,8 +277,8 @@ OSS としては、汎用の英語学習アプリではなく、以下の narrow
 
 ### 99.8 EXP Submodule Operations Checklist
 
-- [x] EXP 側の canonical code path は `tools/phrasify` submodule とする
+- [x] EXP 側の canonical code path は `apps/phrasify` submodule とする
 - [x] EXP 側に Phrasify wrapper repo / duplicate implementation を残さない
-- [x] EXP で生成した CSV / JSONL / Notion handoff は `tools/phrasify/outputs/` に置き、Phrasify repo 側の `.gitignore` で管理外にする
+- [x] EXP で生成した CSV / JSONL / Notion handoff は `apps/phrasify/outputs/` に置き、Phrasify repo 側の `.gitignore` で管理外にする
 - [x] EXP の LLM API key は tracked file に置かず、local-only `.env.local` または environment variables から読む
 - [x] EXP 側で Phrasify を更新したら、Phrasify repo に commit / push してから EXP repo の submodule pointer を更新する
