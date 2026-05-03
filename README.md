@@ -95,23 +95,68 @@ PYTHONPATH=src python -m phrasify export examples/sample_output.jsonl --format c
 
 ## Claude Code / Codex で skill として使う
 
-AI coding agent から Phrasify を呼び出しやすくするために、`skills/phrasify/SKILL.md` を同梱しています。SKILL.md 互換のクライアントでは、このフォルダを user skill / project skill として登録すると、transcript 抽出、CSV 変換、Notion handoff の手順を agent が迷わず実行できます。
+Phrasify は CLI として直接使えるだけでなく、Claude Code や Codex などの coding agent から呼び出しやすいように `skills/phrasify/SKILL.md` を同梱しています。skill を登録すると、agent は Phrasify の安全な実行手順を読んだうえで、transcript の dry-run、LLM 抽出、CSV export、Notion handoff 生成を進められます。
 
-Codex の user skill として入れる例:
+### Codex ユーザー向け
+
+Codex の user skill として使う場合:
 
 ```bash
 mkdir -p ~/.codex/skills
 cp -R skills/phrasify ~/.codex/skills/
 ```
 
-Claude Code の user skill として入れる例:
+その後、Codex のセッションで次のように依頼します。
+
+```text
+$phrasify を使って、この transcript から英語表現カードを抽出してください。
+入力: /path/to/transcript.md
+出力は JSONL と CSV の両方でお願いします。
+```
+
+Codex が repo 内で作業している場合は、`tools/phrasify` または standalone repo root を見つけ、まず `phrasify extract ... --dry-run` で loader / chunking を確認してから、本抽出に進む想定です。
+
+### Claude Code ユーザー向け
+
+Claude Code の user skill として使う場合:
 
 ```bash
 mkdir -p ~/.claude/skills
 cp -R skills/phrasify ~/.claude/skills/
 ```
 
-登録後は、たとえば「`$phrasify` を使ってこの transcript から表現カードを抽出して」と依頼します。agent はまず dry-run で loader / chunking を確認し、その後必要に応じて LLM 抽出や CSV export を実行します。
+Claude Code では、以下のように明示的に skill 名を含めると意図が伝わりやすくなります。
+
+```text
+$phrasify を使って、/path/to/transcript.md から実務英語表現を抽出してください。
+まず dry-run で入力を確認し、問題なければ JSONL を作って、最後に CSV に変換してください。
+```
+
+プロジェクトで共有したい場合は、リポジトリ内に `skills/phrasify/` を置いたままにして、README や agent 用の project instructions から参照させる運用が向いています。ユーザー個人の全プロジェクトで使いたい場合だけ、`~/.claude/skills` や `~/.codex/skills` にコピーしてください。
+
+### Skill が agent に伝えること
+
+- `.env` や API key を表示しない
+- `extract` は transcript chunk を選択した LLM provider に送る
+- `export` と `aggregate` はローカルファイルだけを処理する
+- まず dry-run で loader / chunking を確認する
+- `outputs/` の生成物は原則 git commit しない
+- Notion ID は user が明示した場合だけ使い、コードや docs に固定値を書かない
+
+### よく使う依頼例
+
+```text
+$phrasify でこの Markdown から表現カードを抽出して、CSV も作ってください。
+```
+
+```text
+$phrasify で outputs/example.jsonl を Notion handoff JSON に変換してください。
+Notion target ID はまだ入れないでください。
+```
+
+```text
+$phrasify の抽出結果を確認して、expression_in_source が false のカードを優先レビュー候補としてまとめてください。
+```
 
 ## 入力形式
 
