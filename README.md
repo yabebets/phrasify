@@ -214,30 +214,6 @@ LLM は学習しやすい形に正規化することがあるため、`expressio
 
 Notion 連携は直接書き込みではなく、MCP handoff 用 JSON を生成するだけです。Notion target metadata を入れたい場合は `--notion-database-id` / `--notion-data-source-id`、または `PHRASIFY_NOTION_DATABASE_ID` / `PHRASIFY_NOTION_DATA_SOURCE_ID` を使います。
 
-## OSS repo と private 運用を並存させる
-
-Phrasify 本体は OSS として公開できる状態を保ち、個人環境や社内プロジェクト固有の情報は private overlay に分離してください。同じ作業ディレクトリで日常利用しても構いませんが、tracked file には戻さないのが原則です。
-
-推奨する置き場:
-
-```text
-.env                 # API key。gitignore 済み
-.env.local           # ローカル上書き。gitignore 済み
-.phrasify.local/     # 個人メモ、Notion target、実データ用。gitignore 済み
-outputs/             # 生成物。gitignore 済み
-```
-
-EXP など特定プロジェクト向けの便利 wrapper は、Phrasify repo の外側に置きます。Phrasify 側には汎用 CLI、prompt、tests、skill だけを残し、プロジェクト固有の vault path や個人 Notion ID は入れません。
-
-公開 remote に push する前のチェック:
-
-```bash
-python3 scripts/oss_check.py
-PYTHONPATH=src python3 -m unittest discover -s tests -v
-```
-
-`oss_check.py` は git 管理対象と untracked だが ignore されていないファイルを走査し、個人絶対パス、EXP vault path、実 API key らしき値、過去の private Notion ID を検出したら失敗します。
-
 ## FAQ
 
 ### Anki に入れられますか？
