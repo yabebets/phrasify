@@ -5,4 +5,5 @@ include CONTRIBUTING.md
 include .env.example
 recursive-include examples *
 recursive-include skills *
+recursive-include scripts *
 recursive-include src/phrasify/prompts *.md

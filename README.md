@@ -1,12 +1,13 @@
 # phrasify
 
 `phrasify` は、英語の長文 transcript から「実務でそのまま使える英語表現カード」を抽出する CLI ツールです。
-
 主な読者・利用者は日本語ネイティブのビジネスパーソンです。特に VC、startup、finance、MBA interview、founder / operator conversation などの文脈で、単語ではなく「発話で再利用できる表現の塊」を集めることを目的にしています。
+
+Phrasify is a Japanese-first CLI that turns English transcripts into reusable business expression cards. It is designed for learners who want to turn podcasts, interviews, and startup/VC content into JSONL or CSV learning assets.
 
 DesignSpec は [`phrasify.design-spec.md`](phrasify.design-spec.md) です。旧 lab prototype の必要な機能は `src/phrasify/` 配下の正式モジュールに取り込み済みです。
 
-## 30 秒で試す
+30 秒で試す
 
 ```bash
 git clone https://github.com/<your-org>/phrasify.git
@@ -75,15 +76,15 @@ PYTHONPATH=src python -m phrasify aggregate
 
 ## 主なオプション
 
-| option | 説明 |
-|---|---|
-| `--provider` | `anthropic` / `openai` を選択 |
-| `--model` | provider の model 名を明示 |
-| `--max-expressions` | 抽出する最大 expression 数 |
-| `--chunk-max-chars` | 1 chunk あたりの最大文字数 |
-| `--format` | `jsonl` / `json` / `csv` |
-| `--notion-handoff` | Notion MCP handoff JSON を生成 |
-| `--notion-database-id` | handoff payload に database ID を含める |
+| option                      | 説明                                       |
+| --------------------------- | ------------------------------------------ |
+| `--provider`              | `anthropic` / `openai` を選択          |
+| `--model`                 | provider の model 名を明示                 |
+| `--max-expressions`       | 抽出する最大 expression 数                 |
+| `--chunk-max-chars`       | 1 chunk あたりの最大文字数                 |
+| `--format`                | `jsonl` / `json` / `csv`             |
+| `--notion-handoff`        | Notion MCP handoff JSON を生成             |
+| `--notion-database-id`    | handoff payload に database ID を含める    |
 | `--notion-data-source-id` | handoff payload に data source ID を含める |
 
 ## サンプル
@@ -213,6 +214,30 @@ LLM は学習しやすい形に正規化することがあるため、`expressio
 
 Notion 連携は直接書き込みではなく、MCP handoff 用 JSON を生成するだけです。Notion target metadata を入れたい場合は `--notion-database-id` / `--notion-data-source-id`、または `PHRASIFY_NOTION_DATABASE_ID` / `PHRASIFY_NOTION_DATA_SOURCE_ID` を使います。
 
+## OSS repo と private 運用を並存させる
+
+Phrasify 本体は OSS として公開できる状態を保ち、個人環境や社内プロジェクト固有の情報は private overlay に分離してください。同じ作業ディレクトリで日常利用しても構いませんが、tracked file には戻さないのが原則です。
+
+推奨する置き場:
+
+```text
+.env                 # API key。gitignore 済み
+.env.local           # ローカル上書き。gitignore 済み
+.phrasify.local/     # 個人メモ、Notion target、実データ用。gitignore 済み
+outputs/             # 生成物。gitignore 済み
+```
+
+EXP など特定プロジェクト向けの便利 wrapper は、Phrasify repo の外側に置きます。Phrasify 側には汎用 CLI、prompt、tests、skill だけを残し、プロジェクト固有の vault path や個人 Notion ID は入れません。
+
+公開 remote に push する前のチェック:
+
+```bash
+python3 scripts/oss_check.py
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+```
+
+`oss_check.py` は git 管理対象と untracked だが ignore されていないファイルを走査し、個人絶対パス、EXP vault path、実 API key らしき値、過去の private Notion ID を検出したら失敗します。
+
 ## FAQ
 
 ### Anki に入れられますか？
@@ -226,10 +251,6 @@ Notion 連携は直接書き込みではなく、MCP handoff 用 JSON を生成�
 ### 日本語以外の学習者にも使えますか？
 
 技術的には使えますが、現状の prompt と README は日本語ネイティブ向けに最適化しています。
-
-## English Summary
-
-Phrasify is a Japanese-first CLI that turns English transcripts into reusable business expression cards. It is designed for learners who want to turn podcasts, interviews, and startup/VC content into JSONL or CSV learning assets.
 
 ## ディレクトリ構成
 

@@ -262,8 +262,11 @@ OSS としては、汎用の英語学習アプリではなく、以下の narrow
 ### 99.7 Do Not Open Source Until
 
 - [ ] 実 API key / 個人 Notion ID / 個人 transcript が repo に含まれていない
-- [x] `/Users/toshiakiyabe/exp` への依存が public code path から消えている
+- [x] 個人の絶対パスへの依存が public code path から消えている
 - [x] README だけで third party user が dry-run / sample extraction まで到達できる
 - [x] tests が fresh clone で通る
 - [x] license が明示されている
 - [x] transcript の外部送信に関する privacy note がある
+- [x] private overlay（`.phrasify.local/` 等）と public tracked files の境界が README / `.gitignore` に明示されている
+- [x] `scripts/oss_check.py` で公開前に個人パス・実キー・private Notion ID を検出できる
+- [x] GitHub Actions で `oss_check.py` と unit tests を両方実行する
