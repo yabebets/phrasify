@@ -1,0 +1,25 @@
+[project]
+name = "phrasify"
+version = "0.1.0"
+description = "Extract reusable business English expression cards from transcripts."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+openai = ["openai"]
+anthropic = ["anthropic"]
+notion = ["httpx"]
+dev = ["pytest"]
+
+[project.scripts]
+phrasify = "phrasify.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+phrasify = ["prompts/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
