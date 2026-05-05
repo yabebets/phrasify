@@ -2,9 +2,9 @@
 <img src="assets/phrasify.png" alt="Phrasify turns long-form transcripts into practical phrase cards" width="920">
 
 `Phrasify` は、英語の長文 transcript から「実務でそのまま使える英語表現カード」を抽出する CLI ツールです。
-主な読者・利用者は日本語ネイティブのビジネスパーソンです。特に VC、startup、finance、MBA、などのビジネスシーンの文脈で、単語ではなく「発話で再利用できる表現の塊」を集めることを目的にしています。
+デフォルトでは、日本語ネイティブのビジネスパーソン向け profile が入っています。特に VC、startup、finance、MBA などの文脈で、単語ではなく「発話で再利用できる表現の塊」を集める設定です。
 
-Phrasify is a Japanese-first CLI that turns English transcripts into reusable business expression cards. It is designed for learners who want to turn podcasts, interviews, and startup/VC content into JSONL or CSV learning assets.
+Phrasify turns English transcripts into reusable expression cards. It ships with a Japanese business English profile by default, and OSS users can customize the learner, domains, expression focus, and explanation language with extraction profiles.
 
 ## 30 秒で試す
 
@@ -59,6 +59,14 @@ PYTHONPATH=src python -m phrasify extract /path/to/transcript.md --dry-run
 PYTHONPATH=src python -m phrasify extract /path/to/transcript.md \
   --provider anthropic \
   --max-expressions 30
+```
+
+別の学習者・ドメイン向け profile で抽出:
+
+```bash
+PYTHONPATH=src python -m phrasify extract /path/to/transcript.md \
+  --profile examples/software_engineering_profile.toml \
+  --provider anthropic
 ```
 
 YouTube URL から字幕を取得して、そのまま dry-run:
@@ -173,12 +181,102 @@ MP3 などの audio URL を直接渡した場合は、その音源を OpenAI tra
 
 `--dry-run` は LLM 抽出を行わず、文字起こし取得、loader、chunking だけを確認します。ただし、字幕がなく音声 transcription にフォールバックする場合は、`--dry-run` でも OpenAI transcription を呼びます。
 
+## 抽出 profile
+
+Phrasify の抽出方針は profile で変更できます。デフォルト profile は日本語ネイティブのビジネスパーソン向けですが、OSS ユーザーは自分の用途に合わせて次の要素を差し替えられます。
+
+- 対象学習者
+- 学習者レベル
+- 対象ドメイン
+- 使う場面
+- 優先して抽出する表現タイプ
+- 避けたい表現
+- 説明・翻訳に使う言語
+
+Profile は TOML または JSON で指定します。
+
+```toml
+name = "software_engineering"
+role = "expert English learning material designer for software professionals"
+learner = "a non-native English-speaking software engineer who wants to sound clearer in technical leadership discussions"
+level = "CEFR B2-C1"
+explanation_language = "English"
+domains = ["software engineering", "product development", "architecture reviews"]
+situations = ["design reviews", "roadmap discussions", "incident reviews"]
+focus = ["technical tradeoff expressions", "alignment and clarification phrases"]
+avoid = ["company-specific facts", "tool names that are not reusable"]
+learner_lift_description = "Would this help the learner express technical judgment, nuance, or collaboration more naturally than a literal translation?"
+example_context = "We should call out the tradeoff before we commit to this architecture."
+tags_hint = ["engineering", "leadership", "collocation"]
+categories = ["technical", "leadership", "alignment", "risk", "proposal", "collocation"]
+```
+
+実行例:
+
+```bash
+PYTHONPATH=src python -m phrasify extract examples/sample_transcript.md \
+  --profile examples/software_engineering_profile.toml \
+  --provider anthropic
+```
+
+一時的に CLI から上書きすることもできます。
+
+```bash
+PYTHONPATH=src python -m phrasify extract examples/sample_transcript.md \
+  --learner "a French founder preparing for investor updates" \
+  --learner-level "advanced" \
+  --explanation-language French \
+  --domains fundraising investor_updates \
+  --focus "concise update phrases" "polite pushback expressions" \
+  --provider anthropic
+```
+
+互換性のため、出力 JSON の field names は固定です。たとえば `jp_translation`、`nuance`、`usage` という名前は残りますが、`explanation_language` を変えると中身は指定した言語で生成されます。同様に `japanese_speaker_lift` は schema 互換の field name として残しつつ、profile で定義した学習者にとっての「自然に産出しにくいが価値が高い表現」を評価するスコアとして使います。
+
+完全に独自のプロンプトを使いたい場合は `--prompt /path/to/prompt.md` を指定できます。この場合、profile からのプロンプト生成は使われません。
+
+### 自然文から profile を作る
+
+Profile ファイルを手で書かなくても、自然文の説明から LLM に profile を生成させることができます。
+
+```bash
+PYTHONPATH=src python -m phrasify profile create \
+  "I am a French founder preparing for investor updates. I want concise English phrases for fundraising, board updates, and polite pushback." \
+  --out profiles/founder_updates_fr.toml \
+  --provider anthropic
+```
+
+長めに説明したい場合はテキストファイルから読み込めます。
+
+```bash
+PYTHONPATH=src python -m phrasify profile create \
+  --from-file my-profile-request.txt \
+  --out profiles/my-profile.toml \
+  --provider openai
+```
+
+生成された profile は通常の profile と同じように使います。
+
+```bash
+PYTHONPATH=src python -m phrasify extract transcript.md \
+  --profile profiles/founder_updates_fr.toml \
+  --provider anthropic
+```
+
+`profile create` は profile 生成のために LLM provider を呼びます。`ANTHROPIC_API_KEY` または `OPENAI_API_KEY` を `.env` に設定してください。
+
 ## 主なオプション
 
 | option                      | 説明                                       |
 | --------------------------- | ------------------------------------------ |
 | `--provider`              | `anthropic` / `openai` を選択          |
 | `--model`                 | provider の model 名を明示                 |
+| `--profile`               | 抽出 profile JSON/TOML を指定              |
+| `--learner`               | profile の対象学習者を一時上書き           |
+| `--learner-level`         | profile の学習者レベルを一時上書き         |
+| `--explanation-language`  | `jp_translation` / `nuance` / `usage` の説明言語 |
+| `--domains`               | 対象ドメインを一時上書き                   |
+| `--focus`                 | 優先して抽出する表現タイプを一時上書き     |
 | `--output-dir`            | 生成物の保存先。既定は実行ディレクトリの `outputs/` |
 | `--max-expressions`       | 抽出する最大 expression 数                 |
 | `--chunk-max-chars`       | 1 chunk あたりの最大文字数                 |
@@ -365,12 +463,14 @@ URL入力の場合、Phrasify はまず取得した文字起こし本文を `out
 
 ### 日本語以外の学習者にも使えますか？
 
-技術的には使えますが、現状の prompt と README は日本語ネイティブ向けに最適化しています。
+使えます。デフォルト profile は日本語ネイティブのビジネス英語向けですが、`--profile` や `--explanation-language` で別の学習者・言語・ドメイン向けに変更できます。
 
 ## ディレクトリ構成
 
 - `src/phrasify/`: 本体コード
-- `src/phrasify/prompts/extract.md`: 抽出プロンプト
+- `src/phrasify/profiles.py`: 抽出 profile の読み込みとプロンプト生成
+- `src/phrasify/prompts/extract.md`: 互換用の抽出プロンプト例。通常は profile からプロンプトを生成
+- `examples/software_engineering_profile.toml`: profile カスタマイズ例
 - `tests/`: 標準ライブラリ `unittest` によるテスト
 - `outputs/`: ローカル生成物（JSONL / CSV / Notion handoff）。`.gitkeep` 以外は git 管理外
 

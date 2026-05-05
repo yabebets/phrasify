@@ -56,6 +56,45 @@ class CliTests(unittest.TestCase):
         self.assertIn("[transcript]", out)
         self.assertIn("[chunk]", out)
 
+    def test_profile_create_writes_generated_profile(self) -> None:
+        payload = {
+            "name": "founder_updates_fr",
+            "role": "expert English learning material designer",
+            "learner": "a French founder preparing for investor updates",
+            "level": "advanced",
+            "explanation_language": "French",
+            "domains": ["fundraising", "investor updates"],
+            "situations": ["board updates", "investor calls"],
+            "focus": ["concise update phrases", "polite pushback expressions"],
+            "avoid": ["company-specific facts"],
+            "learner_lift_description": "Would this help the learner sound concise and credible?",
+            "example_context": "We are tracking ahead of plan on retention.",
+            "tags_hint": ["fundraising", "updates"],
+            "categories": ["update", "pushback", "collocation"],
+            "extra_instructions": "",
+        }
+        with tempfile.TemporaryDirectory() as td:
+            out_path = Path(td) / "profile.toml"
+            buf = io.StringIO()
+            with patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}):
+                with patch("phrasify.cli.call_json", return_value=payload):
+                    with contextlib.redirect_stdout(buf):
+                        code = main(
+                            [
+                                "profile",
+                                "create",
+                                "I am a French founder preparing investor updates.",
+                                "--out",
+                                str(out_path),
+                            ]
+                        )
+            text = out_path.read_text(encoding="utf-8")
+
+        self.assertEqual(code, 0)
+        self.assertIn("founder_updates_fr", text)
+        self.assertIn("French founder", text)
+        self.assertIn("[profile]", buf.getvalue())
+
     def test_cli_export_csv(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)

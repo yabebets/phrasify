@@ -55,7 +55,9 @@ def extract_json_object(text: str) -> str:
 
 def load_prompt(path: Path | None = None) -> str:
     if path is None:
-        path = Path(__file__).resolve().parent / "prompts" / "extract.md"
+        from .profiles import load_extraction_profile, render_extraction_prompt
+
+        return render_extraction_prompt(load_extraction_profile())
     return path.read_text(encoding="utf-8")
 
 
@@ -133,6 +135,19 @@ def call_llm(
     raise ValueError(f"unknown provider: {provider}")
 
 
+def call_json(
+    provider: str,
+    model: str,
+    system_prompt: str,
+    user_message: str,
+) -> dict:
+    if provider == "openai":
+        return _call_openai_json(model, system_prompt, user_message)
+    if provider == "anthropic":
+        return _call_anthropic_json(model, system_prompt, user_message)
+    raise ValueError(f"unknown provider: {provider}")
+
+
 def _parse_items(content: str) -> list[dict]:
     payload = extract_json_object(content)
     data = json.loads(payload)
@@ -190,6 +205,34 @@ def _call_openai(
     return _parse_items(content)
 
 
+def _call_openai_json(model: str, system_prompt: str, user_message: str) -> dict:
+    from openai import OpenAI
+
+    client = OpenAI()
+    resp = client.chat.completions.create(
+        model=model,
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ],
+        temperature=0.2,
+        max_tokens=6_000,
+    )
+    choice = resp.choices[0]
+    content = choice.message.content or "{}"
+    finish_reason = getattr(choice, "finish_reason", None)
+    if finish_reason != "stop":
+        print(
+            f"[warn] openai finish_reason={finish_reason!r}; output may be truncated",
+            file=sys.stderr,
+        )
+    data = json.loads(extract_json_object(content))
+    if not isinstance(data, dict):
+        raise ValueError(f"LLM returned non-object JSON: {type(data).__name__}")
+    return data
+
+
 def _call_anthropic(
     model: str,
     system_prompt: str,
@@ -231,3 +274,34 @@ def _call_anthropic(
             file=sys.stderr,
         )
     return _parse_items(content)
+
+
+def _call_anthropic_json(model: str, system_prompt: str, user_message: str) -> dict:
+    from anthropic import Anthropic
+
+    client = Anthropic()
+    json_only_system = (
+        system_prompt
+        + "\n\n# Output discipline\n"
+        "Return only a single JSON object. "
+        "The first character must be `{` and the last character must be `}`."
+    )
+    msg = client.messages.create(
+        model=model,
+        max_tokens=6_000,
+        system=json_only_system,
+        messages=[{"role": "user", "content": user_message}],
+    )
+    content = "".join(
+        block.text for block in msg.content if getattr(block, "type", None) == "text"
+    )
+    stop_reason = getattr(msg, "stop_reason", None)
+    if stop_reason != "end_turn":
+        print(
+            f"[warn] anthropic stop_reason={stop_reason!r}; output may be truncated",
+            file=sys.stderr,
+        )
+    data = json.loads(extract_json_object(content))
+    if not isinstance(data, dict):
+        raise ValueError(f"LLM returned non-object JSON: {type(data).__name__}")
+    return data

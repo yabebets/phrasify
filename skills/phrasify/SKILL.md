@@ -1,11 +1,11 @@
 ---
 name: phrasify
-description: Use when the user wants to extract reusable business English expression cards from transcripts, convert Phrasify JSONL output to CSV, or prepare Notion handoff data. Guides Codex or Claude Code agents to run the local phrasify CLI safely, keep API keys private, and avoid project-specific paths in reusable workflows.
+description: Use when the user wants to extract reusable English expression cards from transcripts, customize extraction profiles, convert Phrasify JSONL output to CSV, or prepare Notion handoff data. Guides Codex or Claude Code agents to run the local phrasify CLI safely, keep API keys private, and avoid project-specific paths in reusable workflows.
 ---
 
 # Phrasify
 
-Phrasify is a CLI for turning English transcripts into reusable expression cards for Japanese-native business English learners. It supports Markdown, text, SRT, VTT, YouTube URL, and Podcast URL inputs, then exports JSONL, JSON, CSV, or Notion handoff JSON.
+Phrasify is a CLI for turning English transcripts into reusable expression cards. It ships with a Japanese business English extraction profile by default, but users can customize the learner, domains, expression focus, and explanation language. It supports Markdown, text, SRT, VTT, YouTube URL, and Podcast URL inputs, then exports JSONL, JSON, CSV, or Notion handoff JSON.
 
 ## Locate the CLI
 
@@ -36,6 +36,17 @@ For YouTube / Podcast URL input, install the media extra:
 
 URL input saves a fetched transcript Markdown under `outputs/transcripts/` before extraction. YouTube uses captions first. Podcast input tries published transcript URLs, Spotify episode metadata plus Apple RSS audio transcription, and YouTube captions fallback. OpenAI audio transcription requires `OPENAI_API_KEY`; long audio also needs `ffmpeg`.
 
+Extraction profiles can be passed with `--profile path/to/profile.toml`. Quick overrides are also available: `--learner`, `--learner-level`, `--explanation-language`, `--domains`, and `--focus`. Use these when the user wants Phrasify tuned for a learner other than the default Japanese business English audience.
+
+Users can also generate a profile from natural language:
+
+```bash
+.venv/bin/phrasify profile create \
+  "I am a French founder preparing for investor updates." \
+  --out profiles/founder_updates_fr.toml \
+  --provider anthropic
+```
+
 Keep secrets local:
 
 ```bash
@@ -64,6 +75,16 @@ For URL input:
 ```bash
 .venv/bin/phrasify extract /path/to/transcript.md --provider anthropic --max-expressions 30
 ```
+
+For a custom learner/domain profile:
+
+```bash
+.venv/bin/phrasify extract /path/to/transcript.md \
+  --profile examples/software_engineering_profile.toml \
+  --provider anthropic
+```
+
+If the user describes their learning goals informally and wants reusable settings, create a profile first with `phrasify profile create`, then run `extract --profile <generated-profile>`.
 
 4. Convert existing JSONL to CSV when requested:
 

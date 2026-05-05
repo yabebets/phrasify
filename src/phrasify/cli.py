@@ -11,7 +11,7 @@ from .chunking import chunk_text
 from .dedup import dedup_cards
 from .env import load_env_files
 from .exporters import write_csv, write_json, write_jsonl, write_notion_handoff
-from .llm import call_llm, get_default_model, load_prompt, require_provider_env
+from .llm import call_json, call_llm, get_default_model, load_prompt, require_provider_env
 from .models import ExpressionCard, card_from_llm_item, card_from_record, validate_card
 from .nlp import build_candidate_hint_block
 from .pathing import default_aggregate_path, default_output_dir, resolve_unique_path, sanitize_stem
@@ -41,7 +41,40 @@ def build_parser() -> argparse.ArgumentParser:
         "--prompt",
         type=Path,
         default=None,
-        help="Override extraction prompt path",
+        help="Override extraction prompt path; disables profile prompt generation",
+    )
+    extract.add_argument(
+        "--profile",
+        type=Path,
+        default=None,
+        help="Extraction profile JSON/TOML path for learner, domain, focus, and explanation language",
+    )
+    extract.add_argument(
+        "--learner",
+        default=None,
+        help="Override profile learner description",
+    )
+    extract.add_argument(
+        "--learner-level",
+        default=None,
+        help="Override profile learner level (for example: CEFR B1, B2+, advanced)",
+    )
+    extract.add_argument(
+        "--explanation-language",
+        default=None,
+        help="Override language used in jp_translation, nuance, and usage fields",
+    )
+    extract.add_argument(
+        "--domains",
+        nargs="+",
+        default=None,
+        help="Override target domains for expression selection",
+    )
+    extract.add_argument(
+        "--focus",
+        nargs="+",
+        default=None,
+        help="Override expression types to prioritize",
     )
     extract.add_argument(
         "--output-dir",
@@ -149,6 +182,42 @@ def build_parser() -> argparse.ArgumentParser:
         help="Directory for URL-derived transcript Markdown (default: <output-dir>/transcripts)",
     )
     extract.set_defaults(func=extract_command)
+
+    profile = sub.add_parser("profile", help="Create extraction profiles")
+    profile_sub = profile.add_subparsers(dest="profile_command")
+    create = profile_sub.add_parser(
+        "create",
+        help="Generate an extraction profile from a natural-language description",
+    )
+    create.add_argument(
+        "description",
+        nargs="*",
+        help="Natural-language profile request; if omitted, stdin is used",
+    )
+    create.add_argument(
+        "--from-file",
+        type=Path,
+        default=None,
+        help="Read the natural-language profile request from a text file",
+    )
+    create.add_argument(
+        "--out",
+        type=Path,
+        default=Path("phrasify-profile.toml"),
+        help="Output profile path (.toml or .json)",
+    )
+    create.add_argument(
+        "--provider",
+        choices=("anthropic", "openai"),
+        default="anthropic",
+        help="LLM provider for profile generation (default: anthropic)",
+    )
+    create.add_argument(
+        "--model",
+        default=None,
+        help="Model name (default depends on provider)",
+    )
+    create.set_defaults(func=profile_create_command)
 
     aggregate = sub.add_parser("aggregate", help="Aggregate and deduplicate output JSONL files")
     aggregate.add_argument(
@@ -279,9 +348,53 @@ def aggregate_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def profile_create_command(args: argparse.Namespace) -> int:
+    from .profiles import (
+        build_profile_generation_system_prompt,
+        build_profile_generation_user_message,
+        profile_from_llm_payload,
+        save_extraction_profile,
+    )
+
+    load_env_files(Path.cwd())
+    description = _read_profile_description(args)
+    if not description.strip():
+        raise ValueError("profile description is empty")
+    model = args.model or get_default_model(args.provider)
+    require_provider_env(args.provider)
+    payload = call_json(
+        provider=args.provider,
+        model=model,
+        system_prompt=build_profile_generation_system_prompt(),
+        user_message=build_profile_generation_user_message(description),
+    )
+    profile = profile_from_llm_payload(payload)
+    save_extraction_profile(profile, args.out)
+    print(f"[profile] name={profile.name!r} -> {args.out}")
+    print(
+        "Use it with: "
+        f"phrasify extract /path/to/transcript.md --profile {args.out}"
+    )
+    return 0
+
+
+def _read_profile_description(args: argparse.Namespace) -> str:
+    parts: list[str] = []
+    if args.from_file:
+        if not args.from_file.exists():
+            raise FileNotFoundError(args.from_file)
+        parts.append(args.from_file.read_text(encoding="utf-8"))
+    if args.description:
+        parts.append(" ".join(args.description))
+    if not parts and not sys.stdin.isatty():
+        parts.append(sys.stdin.read())
+    return "\n\n".join(part.strip() for part in parts if part.strip())
+
+
 def extract_command(args: argparse.Namespace) -> int:
     from .loaders import load_transcript
     from .media import is_url, load_remote_transcript, write_remote_transcript
+    from .profiles import apply_profile_overrides, load_extraction_profile, render_extraction_prompt
 
     load_env_files(Path.cwd())
     input_value = str(args.input)
@@ -325,7 +438,19 @@ def extract_command(args: argparse.Namespace) -> int:
 
     model = args.model or get_default_model(args.provider)
     require_provider_env(args.provider)
-    prompt = load_prompt(args.prompt)
+    if args.prompt:
+        prompt = load_prompt(args.prompt)
+    else:
+        profile = load_extraction_profile(args.profile)
+        profile = apply_profile_overrides(
+            profile,
+            learner=args.learner,
+            level=args.learner_level,
+            explanation_language=args.explanation_language,
+            domains=args.domains,
+            focus=args.focus,
+        )
+        prompt = render_extraction_prompt(profile)
 
     cards: list[ExpressionCard] = []
     remaining = args.max_expressions

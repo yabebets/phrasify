@@ -1,0 +1,44 @@
+name = "software_engineering"
+role = "expert English learning material designer for software professionals"
+learner = "a non-native English-speaking software engineer who wants to sound clearer in technical leadership discussions"
+level = "CEFR B2-C1"
+explanation_language = "English"
+domains = [
+  "software engineering",
+  "product development",
+  "architecture reviews",
+  "technical leadership",
+]
+situations = [
+  "design reviews",
+  "roadmap discussions",
+  "incident reviews",
+  "cross-functional meetings",
+  "written engineering updates",
+]
+focus = [
+  "technical tradeoff expressions",
+  "alignment and clarification phrases",
+  "risk and uncertainty framing",
+  "proposal and pushback expressions",
+  "concise status update phrases",
+  "collocations used in engineering discussions",
+]
+avoid = [
+  "company-specific facts",
+  "tool names that are not reusable",
+  "basic vocabulary unless it forms a useful professional phrase",
+]
+learner_lift_description = "Would this help the learner express technical judgment, nuance, or collaboration more naturally than a literal translation?"
+example_context = "We should call out the tradeoff before we commit to this architecture."
+tags_hint = ["engineering", "leadership", "collocation"]
+categories = [
+  "technical",
+  "leadership",
+  "alignment",
+  "risk",
+  "proposal",
+  "pushback",
+  "collocation",
+  "transition",
+]
