@@ -5,7 +5,7 @@ description: Use when the user wants to extract reusable business English expres
 
 # Phrasify
 
-Phrasify is a CLI for turning English transcripts into reusable expression cards for Japanese-native business English learners. It supports Markdown, text, SRT, and VTT inputs, then exports JSONL, JSON, CSV, or Notion handoff JSON.
+Phrasify is a CLI for turning English transcripts into reusable expression cards for Japanese-native business English learners. It supports Markdown, text, SRT, VTT, YouTube URL, and Podcast URL inputs, then exports JSONL, JSON, CSV, or Notion handoff JSON.
 
 ## Locate the CLI
 
@@ -28,6 +28,14 @@ python3 -m venv .venv
 
 Use `'.[openai]'` instead when the user wants OpenAI. Basic dry-run, JSONL parsing, CSV export, and aggregation do not require provider SDKs.
 
+For YouTube / Podcast URL input, install the media extra:
+
+```bash
+.venv/bin/pip install -e '.[media,anthropic]'
+```
+
+URL input saves a fetched transcript Markdown under `outputs/transcripts/` before extraction. YouTube uses captions first. Podcast input tries published transcript URLs, Spotify episode metadata plus Apple RSS audio transcription, and YouTube captions fallback. OpenAI audio transcription requires `OPENAI_API_KEY`; long audio also needs `ffmpeg`.
+
 Keep secrets local:
 
 ```bash
@@ -43,6 +51,12 @@ Never print `.env` contents or API keys. `extract` sends transcript chunks to th
 
 ```bash
 .venv/bin/phrasify extract /path/to/transcript.md --dry-run
+```
+
+For URL input:
+
+```bash
+.venv/bin/phrasify extract "https://www.youtube.com/watch?v=VIDEO_ID" --dry-run
 ```
 
 3. Run extraction only after dry-run looks reasonable:

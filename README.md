@@ -6,9 +6,7 @@
 
 Phrasify is a Japanese-first CLI that turns English transcripts into reusable business expression cards. It is designed for learners who want to turn podcasts, interviews, and startup/VC content into JSONL or CSV learning assets.
 
-
-
-30 秒で試す
+## 30 秒で試す
 
 ```bash
 git clone https://github.com/<your-org>/phrasify.git
@@ -29,6 +27,12 @@ cd phrasify
 python3 -m venv .venv
 .venv/bin/pip install -e '.[anthropic]'
 # or: .venv/bin/pip install -e '.[openai]'
+```
+
+YouTube / Spotify / Podcast URL も入力にしたい場合は、media extra を入れます。
+
+```bash
+.venv/bin/pip install -e '.[media,anthropic]'
 ```
 
 未インストールのまま開発実行する場合は、`PYTHONPATH=src` を付けます。
@@ -57,6 +61,20 @@ PYTHONPATH=src python -m phrasify extract /path/to/transcript.md \
   --max-expressions 30
 ```
 
+YouTube URL から字幕を取得して、そのまま dry-run:
+
+```bash
+PYTHONPATH=src python -m phrasify extract "https://www.youtube.com/watch?v=VIDEO_ID" --dry-run
+```
+
+Podcast URL から transcript / 文字起こしを作成して Phrasify:
+
+```bash
+PYTHONPATH=src python -m phrasify extract "https://open.spotify.com/episode/EPISODE_ID" \
+  --media-transcriber auto \
+  --provider anthropic
+```
+
 Notion MCP handoff 用 JSON も同時に作る:
 
 ```bash
@@ -77,6 +95,84 @@ PYTHONPATH=src python -m phrasify aggregate
 
 `aggregate` は expression を小文字化し、空白と末尾の句読点を正規化して重複判定します。複数ファイルに同じ expression が出た場合は `frequency` と `source_ids` に集約され、最新の record が代表メタデータとして使われます。
 
+## URL入力
+
+Phrasify はローカル transcript ファイルだけでなく、YouTube / Spotify / Podcast の URL も `extract` に渡せます。URL入力では、まず文字起こし本文を取得し、`outputs/transcripts/` に Markdown として保存します。その Markdown を既存の loader / chunker / LLM 抽出に流すため、URL入力でも出力 schema や CSV export の扱いは通常の transcript と同じです。
+
+URL取得機能は Phrasify 内で完結しています。個人のローカル環境や別リポジトリの `tools/` ディレクトリには依存しません。
+
+### YouTube
+
+YouTube URL は字幕取得を優先します。
+
+1. URL から video ID を抽出
+2. `youtube-transcript-api` で字幕一覧を取得
+3. `--media-lang` の優先順で手動字幕を探す
+4. 手動字幕がなければ自動生成字幕を探す
+5. 字幕が取れず、`--media-transcriber auto` の場合は OpenAI transcription にフォールバック
+6. フォールバック時は `yt-dlp` で音声を取得し、OpenAI transcription で文字起こし
+
+字幕だけを使いたい場合:
+
+```bash
+PYTHONPATH=src python -m phrasify extract "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --media-transcriber captions \
+  --dry-run
+```
+
+字幕ではなく音声から文字起こししたい場合:
+
+```bash
+PYTHONPATH=src python -m phrasify extract "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --media-transcriber openai \
+  --transcribe-lang en \
+  --dry-run
+```
+
+### Spotify
+
+Spotify episode URL では、Spotify から音声を直接取得しません。Spotify は episode metadata の取得に使い、実音源は Apple Podcasts RSS から探します。
+
+1. Spotify episode URL から episode ID を抽出
+2. Spotify ページの OpenGraph / JSON-LD からエピソードタイトル、番組名、公開日、長さを取得
+3. 番組名で Apple Podcasts / iTunes Search API を検索
+4. Apple RSS feed 内でエピソードタイトルに近い entry を探す
+5. RSS entry の audio enclosure URL を取得
+6. 音声 URL を OpenAI transcription に渡して文字起こし
+7. Apple RSS や transcription が失敗した場合は、番組名 + エピソードタイトルで YouTube を検索し、字幕取得を試す
+
+```bash
+PYTHONPATH=src python -m phrasify extract "https://open.spotify.com/episode/EPISODE_ID" \
+  --media-transcriber auto \
+  --transcribe-lang en \
+  --provider anthropic
+```
+
+### Podcast / RSS / Audio URL
+
+一般的な Podcast URL は、公開 transcript があればそれを優先します。
+
+1. RSS URL なら RSS XML を読む
+2. 通常の Podcast ページなら `<link type="application/rss+xml">` から RSS feed を探す
+3. RSS entry から `podcast:transcript` などの transcript URL を探す
+4. transcript URL があれば、その本文を取得して transcript Markdown に保存
+5. transcript URL がない場合は audio enclosure URL を取得
+6. audio URL を OpenAI transcription に渡して文字起こし
+
+MP3 などの audio URL を直接渡した場合は、その音源を OpenAI transcription に渡します。
+
+### URL入力に必要なもの
+
+| 機能 | 必要なもの |
+| ---- | ---------- |
+| YouTube字幕取得 | `.[media]` |
+| YouTube / Podcast の音声ダウンロード | `.[media]` と `yt-dlp` |
+| OpenAI transcription | `OPENAI_API_KEY` |
+| 長尺音声の再エンコード / 分割 | `ffmpeg` / `ffprobe` |
+| Phrasify の LLM 抽出 | `ANTHROPIC_API_KEY` または `OPENAI_API_KEY` |
+
+`--dry-run` は LLM 抽出を行わず、文字起こし取得、loader、chunking だけを確認します。ただし、字幕がなく音声 transcription にフォールバックする場合は、`--dry-run` でも OpenAI transcription を呼びます。
+
 ## 主なオプション
 
 | option                      | 説明                                       |
@@ -94,6 +190,11 @@ PYTHONPATH=src python -m phrasify aggregate
 | `--notion-handoff`        | Notion MCP handoff JSON を生成             |
 | `--notion-database-id`    | handoff payload に database ID を含める    |
 | `--notion-data-source-id` | handoff payload に data source ID を含める |
+| `--media-transcriber`     | URL入力時の取得方法。`auto` / `captions` / `openai` |
+| `--media-lang`            | YouTube字幕の優先言語                       |
+| `--transcribe-lang`       | OpenAI transcription の言語ヒント           |
+| `--transcribe-prompt`     | OpenAI transcription の固有名詞ヒント       |
+| `--transcript-dir`        | URL由来 transcript Markdown の保存先        |
 
 ## サンプル
 
@@ -173,6 +274,8 @@ $phrasify の抽出結果を確認して、expression_in_source が false のカ
 - `.txt`
 - `.srt`
 - `.vtt`
+- YouTube URL
+- Podcast URL / RSS URL / audio URL
 
 ## 出力
 
@@ -234,6 +337,8 @@ LLM は学習しやすい形に正規化することがあるため、`expressio
 
 `extract` を実行すると、入力 transcript の本文が指定した LLM provider（Anthropic または OpenAI）に送信されます。API key はローカルの environment variable から読み、Phrasify は key を出力ファイルに保存しません。
 
+URL入力では、字幕、RSS、Podcastページ、音声ファイルなどを取得するために対象サービスへネットワークリクエストを送ります。OpenAI transcription にフォールバックする場合は、取得した音声が OpenAI に送信されます。YouTube字幕や公開 transcript URL だけで本文が取れた場合、音声は OpenAI transcription に送りません。
+
 生成物はデフォルトで `outputs/` に保存されます。`outputs/` は `.gitignore` されているため、`.gitkeep` 以外の生成物は git 管理外です。
 
 Notion 連携は直接書き込みではなく、MCP handoff 用 JSON を生成するだけです。Notion target metadata を入れたい場合は `--notion-database-id` / `--notion-data-source-id`、または `PHRASIFY_NOTION_DATABASE_ID` / `PHRASIFY_NOTION_DATA_SOURCE_ID` を使います。
@@ -247,6 +352,16 @@ Notion 連携は直接書き込みではなく、MCP handoff 用 JSON を生成�
 ### transcript はどこに送られますか？
 
 `extract` では、選択した LLM provider に transcript chunk を送ります。`export` と `aggregate` はローカルファイルだけを処理します。
+
+URL入力の場合、Phrasify はまず取得した文字起こし本文を `outputs/transcripts/` に Markdown として保存します。その後の LLM 抽出では、その Markdown から読み込んだ transcript chunk が provider に送られます。
+
+### YouTube字幕がある場合も OpenAI transcription を使いますか？
+
+既定の `--media-transcriber auto` では字幕を優先します。字幕が取得できた場合は OpenAI transcription を使いません。音声から文字起こししたい場合は `--media-transcriber openai` を指定してください。
+
+### Spotifyの音声はSpotifyから直接取得しますか？
+
+いいえ。Spotify URL は metadata 取得に使います。番組名とエピソードタイトルから Apple Podcasts RSS の音源を探し、その audio enclosure URL を transcription に使います。Apple RSS で見つからない場合は YouTube字幕 fallback を試します。
 
 ### 日本語以外の学習者にも使えますか？
 

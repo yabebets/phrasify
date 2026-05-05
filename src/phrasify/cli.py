@@ -25,7 +25,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     extract = sub.add_parser("extract", help="Extract expression cards from one file")
-    extract.add_argument("input", type=Path, help="Transcript path (.md/.txt/.srt/.vtt)")
+    extract.add_argument("input", help="Transcript path (.md/.txt/.srt/.vtt) or YouTube/Podcast URL")
     extract.add_argument(
         "--provider",
         choices=("anthropic", "openai"),
@@ -114,6 +114,39 @@ def build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="Load, clean, and chunk the transcript without calling an LLM",
+    )
+    extract.add_argument(
+        "--media-transcriber",
+        choices=("auto", "captions", "openai"),
+        default="auto",
+        help="URL input transcript strategy: captions first, captions only, or OpenAI transcription",
+    )
+    extract.add_argument(
+        "--media-lang",
+        nargs="+",
+        default=["en", "en-US", "en-GB"],
+        help="Preferred YouTube caption languages for URL input",
+    )
+    extract.add_argument(
+        "--transcribe-lang",
+        default=None,
+        help="Optional ISO 639-1 language hint for OpenAI audio transcription",
+    )
+    extract.add_argument(
+        "--transcribe-prompt",
+        default=None,
+        help="Optional prompt/hints for OpenAI audio transcription",
+    )
+    extract.add_argument(
+        "--transcribe-model",
+        default=None,
+        help="OpenAI transcription model for URL audio fallback (default: whisper-1)",
+    )
+    extract.add_argument(
+        "--transcript-dir",
+        type=Path,
+        default=None,
+        help="Directory for URL-derived transcript Markdown (default: <output-dir>/transcripts)",
     )
     extract.set_defaults(func=extract_command)
 
@@ -248,9 +281,28 @@ def aggregate_command(args: argparse.Namespace) -> int:
 
 def extract_command(args: argparse.Namespace) -> int:
     from .loaders import load_transcript
+    from .media import is_url, load_remote_transcript, write_remote_transcript
 
     load_env_files(Path.cwd())
-    document = load_transcript(args.input)
+    input_value = str(args.input)
+    if is_url(input_value):
+        remote = load_remote_transcript(
+            input_value,
+            transcriber=args.media_transcriber,
+            languages=tuple(args.media_lang),
+            transcription_model=args.transcribe_model,
+            transcription_language=args.transcribe_lang,
+            transcription_prompt=args.transcribe_prompt,
+        )
+        transcript_dir = args.transcript_dir or (args.output_dir / "transcripts")
+        transcript_path = write_remote_transcript(remote, transcript_dir)
+        print(
+            f"[transcript] source={remote.source_type} method={remote.transcript_source} "
+            f"chars={len(remote.text)} -> {transcript_path}"
+        )
+        document = load_transcript(transcript_path)
+    else:
+        document = load_transcript(Path(input_value))
     if not document.text.strip():
         raise ValueError("empty transcript")
     chunks = chunk_text(

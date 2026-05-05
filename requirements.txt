@@ -1,4 +1,5 @@
 # Core phrasify has no mandatory third-party dependencies.
 # Install provider SDKs only for the LLM provider you use:
 #   uv pip install openai anthropic
-
+# URL media input is optional:
+#   uv pip install '.[media]'

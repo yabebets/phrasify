@@ -5,8 +5,10 @@ import io
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from phrasify.cli import build_parser, filter_cards_by_scores, main
+from phrasify.media import RemoteTranscript
 from phrasify.models import card_from_llm_item
 
 
@@ -24,6 +26,34 @@ class CliTests(unittest.TestCase):
         self.assertEqual(code, 0)
         out = buf.getvalue()
         self.assertIn("[phrasify]", out)
+        self.assertIn("[chunk]", out)
+
+    def test_cli_dry_run_accepts_url_input(self) -> None:
+        remote = RemoteTranscript(
+            url="https://www.youtube.com/watch?v=abc123def45",
+            title="Demo URL",
+            text="At a high level, this market is moving fast.",
+            source_type="youtube",
+            transcript_source="youtube-captions",
+        )
+        with tempfile.TemporaryDirectory() as td:
+            out_dir = Path(td) / "outputs"
+            buf = io.StringIO()
+            with patch("phrasify.media.load_remote_transcript", return_value=remote):
+                with contextlib.redirect_stdout(buf):
+                    code = main(
+                        [
+                            "extract",
+                            remote.url,
+                            "--dry-run",
+                            "--output-dir",
+                            str(out_dir),
+                        ]
+                    )
+
+        self.assertEqual(code, 0)
+        out = buf.getvalue()
+        self.assertIn("[transcript]", out)
         self.assertIn("[chunk]", out)
 
     def test_cli_export_csv(self) -> None:
